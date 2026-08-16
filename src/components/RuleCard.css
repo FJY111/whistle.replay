@@ -1,0 +1,267 @@
+.rule-card {
+  overflow: hidden;
+  background: var(--panel-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.rule-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 5px 18px rgb(0 0 0 / 4%);
+}
+
+.rule-card.off {
+  background: var(--row-hover);
+}
+
+.rule-card-main {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 11px 10px;
+}
+
+.rule-expand {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--ink-3);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+}
+
+.rule-expand:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.rule-order {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  background: var(--line-soft);
+  border-radius: 6px;
+}
+
+.rule-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.rule-card.off .rule-card-content {
+  opacity: 0.58;
+}
+
+.rule-title-line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  min-height: 22px;
+}
+
+.rule-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rule-tags {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.rule-tags .ant-tag,
+.rule-summary .ant-tag {
+  margin-inline-end: 0;
+}
+
+.rule-card-controls {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  align-items: center;
+}
+
+.rule-pattern {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink-2);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.rule-pattern:hover {
+  color: var(--accent);
+}
+
+.rule-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.rule-detail {
+  background: var(--row-hover);
+  border-top: 1px solid var(--line-soft);
+}
+
+.rule-detail-body {
+  padding: 12px 14px;
+}
+
+.rule-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+}
+
+.rule-detail-grid > div {
+  min-width: 0;
+}
+
+.detail-label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.detail-value {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.rule-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 4px 8px 4px 14px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.rule-detail-hint {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.rule-file-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.rule-file {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  padding: 7px 8px;
+  color: var(--ink-2);
+  text-align: left;
+  background: var(--panel-bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.rule-file:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-line);
+}
+
+.rule-file-name {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.rule-file-name:hover {
+  color: var(--accent);
+}
+
+.rule-file-index {
+  flex: none;
+  width: 17px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.detail-empty {
+  grid-column: 1 / -1;
+  padding: 12px;
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+}
+
+.quick-file-edit {
+  height: 22px;
+  padding-inline: 2px;
+  font-size: 11.5px;
+}
+
+@media (width <= 560px) {
+  .rule-title-line {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rule-tags {
+    justify-content: flex-start;
+  }
+
+  .rule-detail-grid,
+  .rule-file-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-detail-hint {
+    display: none;
+  }
+}

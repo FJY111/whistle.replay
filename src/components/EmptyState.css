@@ -1,0 +1,12 @@
+.empty-state {
+  padding: 12px 0 8px;
+}
+
+.empty-state-steps {
+  max-width: 320px;
+  padding: 0 0 8px 22px;
+  margin: 0 auto;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-3);
+}

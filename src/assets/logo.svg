@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Logo">
+  <defs>
+    <clipPath id="plate">
+      <rect width="64" height="64" rx="12" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#plate)">
+    <rect width="64" height="64" fill="#111" />
+    <rect x="0" y="0" width="39.554" height="39.554" fill="#f0f0f0" />
+    <rect x="39.554" y="0" width="24.446" height="24.446" fill="#b3b3b3" />
+    <rect x="48.892" y="24.446" width="15.108" height="15.108" fill="#808080" />
+    <rect x="39.554" y="30.217" width="9.337" height="9.337" fill="#5c5c5c" />
+    <rect x="39.554" y="24.446" width="5.771" height="5.771" fill="#404040" />
+    <rect x="45.325" y="24.446" width="3.567" height="3.567" fill="#2c2c2c" />
+    <rect x="46.687" y="28.012" width="2.204" height="2.204" fill="#1e1e1e" />
+    <rect x="45.325" y="28.854" width="1.362" height="1.362" fill="#141414" />
+    <rect x="39.554" y="39.554" width="24.446" height="24.446" fill="#b3b3b3" />
+    <rect x="15.108" y="39.554" width="24.446" height="24.446" fill="#b3b3b3" />
+    <rect x="0" y="48.892" width="15.108" height="15.108" fill="#808080" />
+    <rect x="0" y="39.554" width="9.337" height="9.337" fill="#5c5c5c" />
+    <rect x="9.337" y="39.554" width="5.771" height="5.771" fill="#404040" />
+    <rect x="11.542" y="45.325" width="3.567" height="3.567" fill="#2c2c2c" />
+    <rect x="9.337" y="46.687" width="2.204" height="2.204" fill="#1e1e1e" />
+    <rect x="9.337" y="45.325" width="1.362" height="1.362" fill="#141414" />
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+---
+description: CSS conventions for this repo
+globs: "**/*.css"
+alwaysApply: false
+---
+
+# CSS
+
+- Follow Stylelint (`stylelint-config-standard` + `stylelint-config-recess-order`)
+- Keep selectors local to the component; colocate the stylesheet
+- Prefer classes over inline styles unless the value is dynamic

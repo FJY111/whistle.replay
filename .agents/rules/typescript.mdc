@@ -1,0 +1,13 @@
+---
+description: TypeScript conventions for this repo
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# TypeScript
+
+- Use `import type { Foo } from '...'` for type-only imports (`verbatimModuleSyntax`)
+- Prefix unused args and vars with `_`
+- No `any`; avoid non-null assertions unless there is no alternative
+- `===` only; `== null` is allowed for nullish checks
+- Always use curly braces on `if` / `for` / `while`

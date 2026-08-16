@@ -1,0 +1,12 @@
+---
+description: React component conventions
+globs: "src/**/*.{tsx,jsx}"
+alwaysApply: false
+---
+
+# React
+
+- Function components only
+- Colocate `Component.css` next to `Component.tsx`
+- Meaningful images need `alt` text; decorative images use `alt=""`
+- No `console.log` in components (`console.warn` / `console.error` are allowed)

@@ -1,0 +1,92 @@
+.editor-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.field-with-unit {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--ink-2);
+}
+
+.dir-row {
+  display: flex;
+  gap: 8px;
+}
+
+.dir-row .ant-input {
+  flex: 1;
+}
+
+.recent-dirs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.recent-dirs .ant-btn {
+  max-width: 100%;
+  height: auto;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.advanced-collapse {
+  margin: -4px 0 14px;
+  background: var(--row-hover);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.advanced-collapse > .ant-collapse-item > .ant-collapse-header {
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.sel-list {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.sel-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.sel-row:first-child {
+  border-top: none;
+}
+
+.sel-idx {
+  flex: none;
+  width: 18px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.sel-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.sel-empty {
+  padding: 14px;
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+}

@@ -3,6 +3,9 @@
 *.local
 *.log*
 
+# Repo-local npmjs registry + token
+.npmrc
+
 # Agent local overrides
 CLAUDE.local.md
 AGENTS.local.md

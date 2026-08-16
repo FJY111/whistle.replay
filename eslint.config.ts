@@ -113,7 +113,7 @@ export default defineConfig(
     rules: sharedRules,
   },
   {
-    files: ['*.config.{js,ts}', 'eslint.config.ts'],
+    files: ['*.config.{js,ts,mts}', 'eslint.config.ts'],
     extends: [js.configs.recommended, tseslint.configs.disableTypeChecked],
     languageOptions: {
       globals: globals.node,

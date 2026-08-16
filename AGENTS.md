@@ -13,7 +13,7 @@ Shared agent config lives in `.agents/`. `.claude`, `.codex`, and `.cursor` are 
 - `public/` — Rsbuild 构建产物，由 uiServer 托管
 - `test/` — bun:test 纯逻辑单测
 - `rules.txt` — 插件全局规则
-- `rsbuild.config.ts` — 界面打包
+- `rsbuild.config.mts` — 界面打包
 - `tsconfig.server.json` — 服务端编译
 - `eslint.config.ts` / `.stylelintrc.json` / `.prettierrc` — lint and format
 

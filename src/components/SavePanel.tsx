@@ -11,6 +11,7 @@ import { App as AntApp, Button, Input, Switch, Tag } from 'antd';
 import DirtyBar from './DirtyBar';
 import EmptyState from './EmptyState';
 import RuleCard from './RuleCard';
+import SavedFilesDrawer from './SavedFilesDrawer';
 import SaveRuleEditor from './SaveRuleEditor';
 
 import type { SaveRule } from '../types';
@@ -31,7 +32,6 @@ interface Props {
   initialActive: boolean;
   initialRules: SaveRule[];
   onActiveChange: (active: boolean) => void;
-  onCreateMock: (rule: SaveRule) => void;
 }
 
 const newRule = (): SaveRule => ({
@@ -47,12 +47,7 @@ const newRule = (): SaveRule => ({
   prettyJson: false,
 });
 
-export default function SavePanel({
-  initialActive,
-  initialRules,
-  onActiveChange,
-  onCreateMock,
-}: Props) {
+export default function SavePanel({ initialActive, initialRules, onActiveChange }: Props) {
   const { message } = AntApp.useApp();
   const [active, setActiveState] = useState(initialActive);
   const [rules, setRules] = useState<SaveRule[]>(initialRules);
@@ -61,6 +56,7 @@ export default function SavePanel({
   const [editing, setEditing] = useState<SaveRule | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState('');
+  const [filesDir, setFilesDir] = useState<string | null>(null);
 
   const activePending = useRef(false);
 
@@ -122,7 +118,7 @@ export default function SavePanel({
     activePending.current = true;
     setActiveState(checked);
     onActiveChange(checked);
-    setActive(checked, 'save')
+    setActive(checked)
       .then(() => {
         activePending.current = false;
         message[checked ? 'success' : 'info'](checked ? '已启用自动保存' : '已关闭自动保存');
@@ -184,7 +180,8 @@ export default function SavePanel({
         </span>
       </div>
       <span className="panel-desc">
-        命中规则的请求，其响应体会自动写入对应目录。按从上到下的顺序匹配，同一请求可被多条规则分别保存。
+        命中规则的响应体会写入对应目录，并记下状态码、响应头和请求侧信息。之后相同路径和 HTTP
+        方法的请求自动回放最早的一份。URL 匹配仍是子串或正则，作用在完整 URL 上。
       </span>
 
       {rules.length > 0 ? (
@@ -237,13 +234,14 @@ export default function SavePanel({
                 expanded={expanded.has(rule.id)}
                 extraActions={
                   <Button
+                    disabled={!rule.dir}
                     size="small"
                     type="link"
                     onClick={() => {
-                      onCreateMock(rule);
+                      setFilesDir(rule.dir);
                     }}
                   >
-                    生成 Mock
+                    已保存文件
                   </Button>
                 }
                 index={index}
@@ -347,6 +345,13 @@ export default function SavePanel({
       </Button>
 
       {dirty ? <DirtyBar saving={saving} onSave={handleSave} /> : null}
+
+      <SavedFilesDrawer
+        dir={filesDir}
+        onClose={() => {
+          setFilesDir(null);
+        }}
+      />
 
       {editing ? (
         <SaveRuleEditor

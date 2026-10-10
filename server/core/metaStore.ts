@@ -11,6 +11,12 @@ export interface FileMeta {
   contentType: string;
   method?: string;
   time: number;
+  pathname?: string;
+  statusCode?: number;
+  requestHeaders?: Record<string, string>;
+  requestBody?: string;
+  requestBodyOmitted?: boolean;
+  responseHeaders?: Record<string, string>;
 }
 
 export type MetaMap = Record<string, FileMeta>;

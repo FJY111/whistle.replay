@@ -1,7 +1,7 @@
 {
   "name": "whistle.sake",
   "version": "1.0.0",
-  "description": "whistle 插件：按规则自动保存抓包响应，并用保存的文件 Mock 请求（支持多文件轮换）",
+  "description": "whistle 插件：按规则保存抓包响应，并按路径与 HTTP 方法自动回放最早的一份",
   "keywords": [
     "whistle",
     "whistle-plugin",

@@ -3,6 +3,8 @@ import type { Context } from 'koa';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { readMeta } from '../../core/metaStore';
+import { findReplayByFile } from '../../core/replayStore';
 import { isSafeFileName } from '../../core/sanitize';
 import { getConfiguredDirs } from '../../core/settings';
 
@@ -28,12 +30,14 @@ async function readFile(ctx: Context): Promise<void> {
     return;
   }
   const truncated = body.length > MAX_PREVIEW;
+  const meta = readMeta(dir)[name] ?? findReplayByFile(dir, name) ?? undefined;
   ctx.body = {
     ec: 0,
     name,
     size: body.length,
     truncated,
     content: truncated ? body.slice(0, MAX_PREVIEW) : body,
+    meta,
   };
 }
 

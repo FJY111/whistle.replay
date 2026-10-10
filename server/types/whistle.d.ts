@@ -32,14 +32,19 @@ export interface WhistleFrame {
 
 /** req.getSession 回调中的会话数据（仅列出本插件用到的字段） */
 export interface WhistleSession {
+  id?: string;
+  req?: {
+    headers?: Record<string, string | string[] | undefined>;
+    body?: string | Buffer | null | false;
+  } | null;
   res?: {
     headers?: Record<string, string | string[] | undefined>;
-    body?: string | Buffer | null;
-    statusCode?: number;
+    body?: string | Buffer | null | false;
+    statusCode?: number | string;
   } | null;
   resHeaders?: Record<string, string | string[] | undefined> | null;
-  resBody?: string | Buffer | null;
-  statusCode?: number;
+  resBody?: string | Buffer | null | false;
+  statusCode?: number | string;
   /** SSE 响应：body 在 frames 里，res.body 通常为空 */
   isSse?: boolean;
   isCse?: boolean;
@@ -52,8 +57,14 @@ export interface WhistleSession {
 export interface WhistleRequest extends IncomingMessage {
   originalReq: {
     url?: string;
+    fullUrl?: string;
     method?: string;
+    headers?: Record<string, string | string[] | undefined>;
     [key: string]: unknown;
+  };
+  originalRes?: {
+    statusCode?: number | string;
+    headers?: Record<string, string | string[] | undefined>;
   };
   getSession(cb: (session: WhistleSession | null) => void): void;
   /** 拉取 WebSocket / SSE frames；需会话标记为 frames 模式 */

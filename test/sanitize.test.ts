@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test';
 
 import {
   isSafeFileName,
-  parseMockRules,
+  parseExcludeRules,
   parseSaveRules,
-  sanitizeMockRules,
+  sanitizeExcludeRules,
   sanitizeSaveRules,
 } from '../server/core/sanitize';
 
@@ -75,50 +75,28 @@ test('sanitizeSaveRules: id 去重、数量封顶、maxBodyKB 取整截断', () 
   expect(sanitizeSaveRules(new Array(300).fill({ pattern: '/x' }))).toHaveLength(200);
 });
 
-test('sanitizeMockRules: 无合法文件的规则被丢弃', () => {
-  const rules = sanitizeMockRules([
-    { pattern: '/a', files: [] },
-    { pattern: '/a', files: ['../x.json'] },
-    { pattern: '/a', files: ['ok.json'] },
+test('sanitizeExcludeRules: 只保留路径和方法，丢弃非法 pattern', () => {
+  const rules = sanitizeExcludeRules([
+    { id: 'e1', enabled: true, pattern: '/health', methods: ['get'] },
+    { pattern: '/[/' },
+    { pattern: '' },
   ]);
   expect(rules).toHaveLength(1);
-  expect(rules[0]?.files).toEqual(['ok.json']);
-});
-
-test('sanitizeMockRules: 模式与类型推断、delay 封顶、文件去重', () => {
-  const rules = sanitizeMockRules([
-    {
-      id: 'm1',
-      enabled: true,
-      pattern: '/api',
-      dir: '/tmp',
-      files: ['a.json', 'a.json', 'b.txt'],
-      mode: 'round-robin',
-      delay: 99999,
-      delayJitter: 8000,
-      hitRate: 25,
-      statusCode: 503,
-      headers: { 'X-Mock': 'yes', Bad: 1 },
-    },
-    { pattern: '/b', files: ['c.txt'], mode: 'weird', type: 'sse' },
-  ]);
-  expect(rules).toHaveLength(2);
-  expect(rules[0]?.files).toEqual(['a.json', 'b.txt']);
-  expect(rules[0]?.mode).toBe('round-robin');
-  expect(rules[0]?.type).toBe('json');
-  expect(rules[0]?.delay).toBe(5000);
-  expect(rules[0]?.delayJitter).toBe(5000);
-  expect(rules[0]?.hitRate).toBe(25);
-  expect(rules[0]?.statusCode).toBe(503);
-  expect(rules[0]?.headers).toEqual({ 'x-mock': 'yes' });
-  expect(rules[1]?.mode).toBe('fixed');
-  expect(rules[1]?.type).toBe('sse');
+  expect(rules[0]).toEqual({
+    id: 'e1',
+    name: '排除 1',
+    enabled: true,
+    pattern: '/health',
+    methods: ['GET'],
+  });
 });
 
 test('parse: 从 storage 字符串解析，坏数据返回空列表', () => {
   expect(parseSaveRules('not-json')).toHaveLength(0);
   expect(parseSaveRules(null)).toHaveLength(0);
-  expect(parseMockRules(undefined)).toHaveLength(0);
+  expect(parseExcludeRules(undefined)).toHaveLength(0);
   expect(parseSaveRules(JSON.stringify([{ pattern: '/a' }]))).toHaveLength(1);
-  expect(parseMockRules(JSON.stringify([{ pattern: '/a', files: ['x.json'] }]))).toHaveLength(1);
+  expect(parseExcludeRules(JSON.stringify([{ pattern: '/health', enabled: true }]))).toHaveLength(
+    1,
+  );
 });

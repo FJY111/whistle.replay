@@ -1,6 +1,6 @@
-import type { MockRule, SaveRule } from '../server/core/model.ts';
+import type { CaptureMeta, ExcludeRule, SaveRule } from '../server/core/model.ts';
 
-export type { MockMode, MockRule, MockType, SaveRule, SaveType } from '../server/core/model.ts';
+export type { CaptureMeta, ExcludeRule, SaveRule, SaveType } from '../server/core/model.ts';
 export { HTTP_METHODS } from '../server/core/model.ts';
 
 export interface Settings {
@@ -8,8 +8,7 @@ export interface Settings {
   em?: string;
   saveActive: boolean;
   saveRules: SaveRule[];
-  mockActive: boolean;
-  mockRules: MockRule[];
+  excludeRules: ExcludeRule[];
 }
 
 export interface FileInfo {
@@ -19,6 +18,8 @@ export interface FileInfo {
   url?: string;
   contentType?: string;
   method?: string;
+  pathname?: string;
+  statusCode?: number;
 }
 
 export interface ListFilesResult {
@@ -34,6 +35,7 @@ export interface ReadFileResult {
   size?: number;
   truncated?: boolean;
   content?: string;
+  meta?: CaptureMeta;
 }
 
 export interface WriteFileResult {

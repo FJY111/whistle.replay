@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { readMeta } from '../../core/metaStore';
+import { findReplayByFile } from '../../core/replayStore';
 
 const FILE_RE = /\.(json|txt)$/i;
 const MAX_FILES = 200;
@@ -15,6 +16,8 @@ interface FileInfo {
   url?: string;
   contentType?: string;
   method?: string;
+  pathname?: string;
+  statusCode?: number;
 }
 
 const statFile = (dir: string, name: string): Promise<FileInfo | null> =>
@@ -28,7 +31,7 @@ const statFile = (dir: string, name: string): Promise<FileInfo | null> =>
     });
   });
 
-/** 扫描指定目录，返回可 mock 的响应文件列表（合并索引中的来源信息） */
+/** 扫描指定目录，返回已保存的响应文件（合并索引或回放目录中的来源信息） */
 async function listFiles(ctx: Context): Promise<void> {
   const dir = typeof ctx.query.dir === 'string' ? ctx.query.dir : '';
   if (!dir) {
@@ -44,12 +47,17 @@ async function listFiles(ctx: Context): Promise<void> {
   const meta = readMeta(dir);
   const files = stats
     .filter((info): info is FileInfo => info !== null)
-    .map((info) => ({
-      ...info,
-      url: meta[info.name]?.url,
-      contentType: meta[info.name]?.contentType,
-      method: meta[info.name]?.method,
-    }))
+    .map((info) => {
+      const saved = meta[info.name] ?? findReplayByFile(dir, info.name) ?? undefined;
+      return {
+        ...info,
+        url: saved?.url,
+        contentType: saved?.contentType,
+        method: saved?.method,
+        pathname: saved?.pathname,
+        statusCode: saved?.statusCode,
+      };
+    })
     .sort((a, b) => b.mtime - a.mtime)
     .slice(0, MAX_FILES);
   ctx.body = { ec: 0, dir, files };

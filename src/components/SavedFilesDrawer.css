@@ -1,0 +1,49 @@
+.saved-files-dir {
+  margin: 0 0 12px;
+  color: var(--ink-2);
+  word-break: break-all;
+}
+
+.saved-files-empty {
+  color: var(--ink-3);
+}
+
+.saved-files-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.saved-file {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.saved-file:hover {
+  background: var(--row-hover);
+}
+
+.saved-file-name {
+  color: var(--ink);
+}
+
+.saved-file-meta {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.saved-file-meta .ellipsis {
+  flex: 1;
+}

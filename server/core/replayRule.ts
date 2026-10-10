@@ -19,13 +19,13 @@ export function buildFileReplay(
   const headerJson = JSON.stringify(withReplayHitHeader(headers));
   if (inlineBody !== null) {
     return {
-      rules: `${requestUrl} file://{sakeReplayBody} resHeaders://{sakeReplayH}${statusRule}`,
-      values: { sakeReplayBody: inlineBody, sakeReplayH: headerJson },
+      rules: `${requestUrl} file://{replayBody} resHeaders://{replayH}${statusRule}`,
+      values: { replayBody: inlineBody, replayH: headerJson },
     };
   }
   return {
-    rules: `${requestUrl} file://<${filePath}> resHeaders://{sakeReplayH}${statusRule}`,
-    values: { sakeReplayH: headerJson },
+    rules: `${requestUrl} file://<${filePath}> resHeaders://{replayH}${statusRule}`,
+    values: { replayH: headerJson },
   };
 }
 

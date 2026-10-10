@@ -24,6 +24,10 @@ export default function App() {
   const [capturesOpen, setCapturesOpen] = useState(false);
 
   useEffect(() => {
+    document.title = 'whistle.replay';
+  }, []);
+
+  useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = dark ? 'dark' : 'light';
     root.style.colorScheme = dark ? 'dark' : 'light';

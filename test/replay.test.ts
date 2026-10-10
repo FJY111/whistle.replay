@@ -332,8 +332,8 @@ test('buildFileReplay: 始终带上原始状态码和响应头', () => {
   expect(built.rules).toContain('statusCode://200');
   expect(built.rules).toContain('file://</tmp/a.json>');
   expect(built.rules).not.toContain('resDelay');
-  expect(built.values.sakeReplayH).toContain('application/json');
-  expect(built.values.sakeReplayH).toContain('"x-whistle-replay":"hit"');
+  expect(built.values.replayH).toContain('application/json');
+  expect(built.values.replayH).toContain('"x-whistle-replay":"hit"');
 
   const inline = buildFileReplay(
     'https://example.com/a',
@@ -342,10 +342,11 @@ test('buildFileReplay: 始终带上原始状态码和响应头', () => {
     { 'x-whistle-replay': 'miss' },
     '{"ok":true}',
   );
-  expect(inline.values.sakeReplayH).toContain('"x-whistle-replay":"hit"');
-  expect(inline.rules).toContain('file://{sakeReplayBody}');
+  expect(inline.values.replayH).toContain('"x-whistle-replay":"hit"');
+  expect(inline.rules).toContain('file://{replayBody}');
+  expect(inline.rules).toContain('resHeaders://{replayH}');
   expect(inline.rules).toContain('statusCode://404');
-  expect(inline.values.sakeReplayBody).toBe('{"ok":true}');
+  expect(inline.values.replayBody).toBe('{"ok":true}');
 
   expect(
     buildSseReplay('https://example.com/stream', 'http://127.0.0.1:9/mock/a.txt', 200).rules,

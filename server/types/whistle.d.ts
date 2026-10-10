@@ -45,6 +45,12 @@ export interface WhistleSession {
   resHeaders?: Record<string, string | string[] | undefined> | null;
   resBody?: string | Buffer | null | false;
   statusCode?: number | string;
+  /** 请求发出的时间戳（毫秒） */
+  requestTime?: number;
+  /** 请求进入代理的时间戳（毫秒）。没有 requestTime 时用来算耗时 */
+  startTime?: number;
+  /** 响应收齐的时间戳（毫秒） */
+  endTime?: number;
   /** SSE 响应：body 在 frames 里，res.body 通常为空 */
   isSse?: boolean;
   isCse?: boolean;

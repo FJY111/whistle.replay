@@ -5,7 +5,12 @@ import path from 'node:path';
 import type { WhistlePluginContext, WhistleRequest, WhistleServer } from './types/whistle';
 
 import { normalizeStatusCode } from './core/capture';
-import { captureHeaders } from './core/headers';
+import {
+  captureHeaders,
+  REPLAY_HIT_HEADER,
+  REPLAY_HIT_VALUE,
+  withReplayHitHeader,
+} from './core/headers';
 import { getStreamPort, isStreamReq, markReplayed, setStreamPort } from './core/mockMark';
 import { firstText, hostnameOf, pathnameOf, replayKey } from './core/pathname';
 import { isReplayActive, shouldReplay } from './core/replayAllow';
@@ -71,6 +76,7 @@ function startStreamServer(storage: WhistlePluginContext['storage']): void {
       res.writeHead(statusCode, {
         'x-accel-buffering': 'no',
         ...headers,
+        [REPLAY_HIT_HEADER]: REPLAY_HIT_VALUE,
       });
       const chunks = splitSseEvents(body.toString('utf8'));
       let index = 0;
@@ -157,7 +163,7 @@ function rulesServer(server: WhistleServer, { storage }: WhistlePluginContext): 
         done();
         return;
       }
-      const headers = found.entry.responseHeaders;
+      const headers = withReplayHitHeader(found.entry.responseHeaders);
       const statusCode = found.entry.statusCode;
       const contentType = (headers['content-type'] ?? found.entry.contentType).toLowerCase();
       const port = getStreamPort();

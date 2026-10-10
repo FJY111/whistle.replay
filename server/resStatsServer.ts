@@ -13,10 +13,14 @@ import { fitRequestBody, normalizeStatusCode, readBody } from './core/capture';
 import { captureHeaders, replayResponseHeaders } from './core/headers';
 import { consumeReplayed, isStreamReq } from './core/mockMark';
 import { firstText, normalizeMethod, pathnameOf, replayKey } from './core/pathname';
-import { testMethod, testPattern } from './core/pattern';
 import { commitSavedCapture } from './core/replayStore';
 import { parseSaveRules } from './core/sanitize';
-import { testStatusCode } from './core/statusCodes';
+import {
+  acceptResponseBody,
+  isSlowSave,
+  responseDurationMs,
+  shouldSaveForRule,
+} from './core/savePolicy';
 import { joinSseFrames } from './sseStream';
 
 const requestUrlOf = (req: WhistleRequest): string =>
@@ -120,11 +124,7 @@ function resStatsServer(server: WhistleServer, { storage, config }: WhistlePlugi
       return;
     }
     const rules = parseSaveRules(storage.getProperty('saveRules')).filter(
-      (rule) =>
-        rule.enabled &&
-        rule.dir &&
-        testPattern(url, rule.pattern) &&
-        testMethod(method, rule.methods),
+      (rule) => rule.enabled && rule.dir,
     );
     if (!rules.length) {
       return;
@@ -133,6 +133,7 @@ function resStatsServer(server: WhistleServer, { storage, config }: WhistlePlugi
       if (!s) {
         return;
       }
+      const slow = isSlowSave(responseDurationMs(s));
       const rawHeaders = s.res?.headers ?? s.resHeaders ?? {};
       const capturedResponseHeaders = captureHeaders(rawHeaders);
       const contentType = capturedResponseHeaders['content-type'] ?? '';
@@ -151,14 +152,17 @@ function resStatsServer(server: WhistleServer, { storage, config }: WhistlePlugi
       const savedAt = Date.now();
 
       const apply = (body: string): void => {
-        if (!body) {
-          return;
-        }
         for (const rule of rules) {
-          if (!rule.saveTypes.includes(saveType)) {
-            continue;
-          }
-          if (!testStatusCode(statusCode, rule.statusCodes)) {
+          if (
+            !shouldSaveForRule({
+              rule,
+              url,
+              method,
+              saveType,
+              statusCode,
+              slow,
+            })
+          ) {
             continue;
           }
           let output = body;
@@ -192,16 +196,15 @@ function resStatsServer(server: WhistleServer, { storage, config }: WhistlePlugi
       };
 
       const response = readBody(s.resBody ?? s.res?.body);
-      if (response.binary) {
+      const text = acceptResponseBody(response.text, response.binary);
+      if (text == null) {
         return;
       }
-      if (response.text) {
-        apply(response.text);
-        return;
-      }
-      if (saveType === 'sse' || s.isSse || s.isCse) {
+      if ((saveType === 'sse' || s.isSse || s.isCse) && text === '') {
         collectSseBody(req, s, apply);
+        return;
       }
+      apply(text);
     });
   });
 }

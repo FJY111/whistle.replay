@@ -1,5 +1,7 @@
 /** 把一条回放记录变成 whistle 动态规则 */
 
+import { withReplayHitHeader } from './headers';
+
 export interface BuiltRule {
   rules: string;
   values: Record<string, string>;
@@ -14,7 +16,7 @@ export function buildFileReplay(
   inlineBody: string | null,
 ): BuiltRule {
   const statusRule = ` statusCode://${String(statusCode)}`;
-  const headerJson = JSON.stringify(headers);
+  const headerJson = JSON.stringify(withReplayHitHeader(headers));
   if (inlineBody !== null) {
     return {
       rules: `${requestUrl} file://{sakeReplayBody} resHeaders://{sakeReplayH}${statusRule}`,

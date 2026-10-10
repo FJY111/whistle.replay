@@ -213,14 +213,16 @@ test('buildFileReplay: 始终带上原始状态码和响应头', () => {
   expect(built.rules).toContain('file://</tmp/a.json>');
   expect(built.rules).not.toContain('resDelay');
   expect(built.values.sakeReplayH).toContain('application/json');
+  expect(built.values.sakeReplayH).toContain('"x-whistle-replay":"hit"');
 
   const inline = buildFileReplay(
     'https://example.com/a',
     '/tmp/my file.json',
     404,
-    {},
+    { 'x-whistle-replay': 'miss' },
     '{"ok":true}',
   );
+  expect(inline.values.sakeReplayH).toContain('"x-whistle-replay":"hit"');
   expect(inline.rules).toContain('file://{sakeReplayBody}');
   expect(inline.rules).toContain('statusCode://404');
   expect(inline.values.sakeReplayBody).toBe('{"ok":true}');

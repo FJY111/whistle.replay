@@ -59,6 +59,14 @@ export function captureHeaders(input: unknown): Record<string, string> {
   return result;
 }
 
+export const REPLAY_HIT_HEADER = 'x-whistle-replay';
+export const REPLAY_HIT_VALUE = 'hit';
+
+/** 只加在回放响应上，告诉调用方这不是真实服务器 */
+export function withReplayHitHeader(headers: Record<string, string>): Record<string, string> {
+  return { ...headers, [REPLAY_HIT_HEADER]: REPLAY_HIT_VALUE };
+}
+
 /** 回放响应头：去掉传输层字段，避免把已解码正文再套一层编码 */
 export function replayResponseHeaders(headers: Record<string, string>): Record<string, string> {
   const result: Record<string, string> = {};

@@ -52,6 +52,8 @@ export interface CaptureMeta {
 
 export interface ReplayEntry extends CaptureMeta {
   file: string;
+  /** 标在这条回放记录上。为 true 时文件仍在，但回放跳过它 */
+  skipReplay?: boolean;
 }
 
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as const;

@@ -6,7 +6,7 @@ import path from 'node:path';
 import type { CaptureMeta, ReplayEntry } from './model';
 
 import { normalizeStatusCode } from './capture';
-import { readMeta, recordMeta } from './metaStore';
+import { forgetMeta, readMeta, recordMeta } from './metaStore';
 import { replayKey } from './pathname';
 import { mergeReplayEntry, type ReplayMap, selectReplay } from './replayCatalog';
 import { isSafeFileName } from './sanitize';
@@ -55,7 +55,15 @@ const parseEntry = (value: unknown): ReplayEntry | null => {
     requestBody: typeof raw.requestBody === 'string' ? raw.requestBody : '',
     requestBodyOmitted: raw.requestBodyOmitted === true,
     responseHeaders: isStringRecord(raw.responseHeaders) ? raw.responseHeaders : {},
+    skipReplay: raw.skipReplay === true,
   };
+};
+
+const writeReplay = (dir: string, map: ReplayMap): void => {
+  const filePath = path.join(dir, REPLAY_FILE);
+  fs.writeFileSync(filePath, JSON.stringify(map));
+  const mtimeMs = fs.statSync(filePath).mtimeMs;
+  cache.set(dir, { mtimeMs, map });
 };
 
 export function readReplay(dir: string): ReplayMap {
@@ -97,12 +105,62 @@ export function recordReplay(dir: string, entry: ReplayEntry): void {
   const current = readReplay(dir);
   const next = { ...current, [key]: entry };
   try {
-    const filePath = path.join(dir, REPLAY_FILE);
-    fs.writeFileSync(filePath, JSON.stringify(next));
-    const mtimeMs = fs.statSync(filePath).mtimeMs;
-    cache.set(dir, { mtimeMs, map: next });
+    writeReplay(dir, next);
   } catch {
     cache.delete(dir);
+  }
+}
+
+/** 在回放记录上标记或取消不回放。文件不动。没有这条回放记录时返回 false */
+export function setReplaySkipped(dir: string, file: string, skip: boolean): boolean {
+  if (!isSafeFileName(file)) {
+    return false;
+  }
+  const current = readReplay(dir);
+  let found = false;
+  const next: ReplayMap = {};
+  for (const [key, entry] of Object.entries(current)) {
+    if (entry.file === file) {
+      found = true;
+      next[key] = { ...entry, skipReplay: skip };
+    } else {
+      next[key] = entry;
+    }
+  }
+  if (!found) {
+    return false;
+  }
+  try {
+    writeReplay(dir, next);
+  } catch {
+    cache.delete(dir);
+    return false;
+  }
+  return true;
+}
+
+/** 删掉响应文件，以及展示索引和回放记录里指向它的条目 */
+export function deleteSavedCapture(dir: string, file: string): void {
+  if (!isSafeFileName(file)) {
+    return;
+  }
+  const current = readReplay(dir);
+  const next: ReplayMap = {};
+  for (const [key, entry] of Object.entries(current)) {
+    if (entry.file !== file) {
+      next[key] = entry;
+    }
+  }
+  try {
+    writeReplay(dir, next);
+  } catch {
+    cache.delete(dir);
+  }
+  forgetMeta(dir, file);
+  try {
+    fs.unlinkSync(path.join(dir, file));
+  } catch {
+    // 文件已经不在
   }
 }
 

@@ -35,6 +35,25 @@ export function readMeta(dir: string): MetaMap {
   }
 }
 
+/** 从展示索引去掉一个文件名，不改动其余记录 */
+export function forgetMeta(dir: string, file: string): void {
+  try {
+    const data = readMeta(dir);
+    if (!(file in data)) {
+      return;
+    }
+    const next: MetaMap = {};
+    for (const [name, item] of Object.entries(data)) {
+      if (name !== file) {
+        next[name] = item;
+      }
+    }
+    fs.writeFileSync(path.join(dir, INDEX_FILE), JSON.stringify(next));
+  } catch {
+    // 索引删不掉时，响应文件仍会按调用方继续处理
+  }
+}
+
 export function recordMeta(
   dir: string,
   file: string,

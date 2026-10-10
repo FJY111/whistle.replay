@@ -6,7 +6,7 @@ import { fitRequestBody, normalizeStatusCode, readBody } from '../server/core/ca
 import { captureHeaders, replayResponseHeaders } from '../server/core/headers';
 import { hostnameOf, normalizeMethod, pathnameOf, replayKey } from '../server/core/pathname';
 import { isReplayActive, shouldReplay } from '../server/core/replayAllow';
-import { mergeReplayEntry, selectReplay } from '../server/core/replayCatalog';
+import { listSavedCaptures, mergeReplayEntry, selectReplay } from '../server/core/replayCatalog';
 import { buildFileReplay, buildSseReplay } from '../server/core/replayRule';
 
 const entry = (over: Partial<ReplayEntry> & Pick<ReplayEntry, 'file' | 'time'>): ReplayEntry => ({
@@ -98,6 +98,66 @@ test('selectReplay: 选最新且文件仍在的一条；最新文件缺失则用
     { order: 0, dir: '/a', entry: entry({ file: 'first.json', time: 3 }), fileExists: true },
   ]);
   expect(tie?.entry.file).toBe('first.json');
+
+  const skipped = selectReplay([
+    {
+      order: 0,
+      dir: '/a',
+      entry: entry({ file: 'late.json', time: 9, skipReplay: true }),
+      fileExists: true,
+    },
+    { order: 1, dir: '/b', entry: early, fileExists: true },
+  ]);
+  expect(skipped?.entry.file).toBe('early.json');
+  expect(
+    selectReplay([
+      {
+        order: 0,
+        dir: '/a',
+        entry: entry({ file: 'late.json', time: 9, skipReplay: true }),
+        fileExists: true,
+      },
+    ]),
+  ).toBeNull();
+});
+
+test('listSavedCaptures: 回放记录全部列出，索引里多出来的文件也列出', () => {
+  const replay = {
+    'GET /api/items': entry({ file: 'late.json', time: 9 }),
+    'GET /api/old': entry({ file: 'old.json', time: 1, pathname: '/api/old' }),
+  };
+  const rows = listSavedCaptures(
+    [
+      {
+        dir: '/captures',
+        order: 0,
+        replay,
+        index: {
+          'late.json': { time: 9, method: 'GET', pathname: '/api/items', statusCode: 200 },
+          'orphan.json': { time: 4, method: 'POST', pathname: '/api/orphan', statusCode: 404 },
+        },
+      },
+    ],
+    (_dir, file) => file !== 'missing.json',
+  );
+  expect(rows.map((row) => row.file).sort()).toEqual(['late.json', 'old.json', 'orphan.json']);
+  expect(rows.find((row) => row.file === 'late.json')?.active).toBe(true);
+  expect(rows.find((row) => row.file === 'orphan.json')).toMatchObject({
+    inReplay: false,
+    active: false,
+    method: 'POST',
+    pathname: '/api/orphan',
+  });
+
+  const many = Object.fromEntries(
+    Array.from({ length: 250 }, (_, index) => [
+      `GET /p/${String(index)}`,
+      entry({ file: `f${String(index)}.json`, time: index, pathname: `/p/${String(index)}` }),
+    ]),
+  );
+  expect(
+    listSavedCaptures([{ dir: '/captures', order: 0, replay: many, index: {} }], () => true),
+  ).toHaveLength(250);
 });
 
 test('shouldReplay: 开关关闭一律不回放；开启时只有命中白名单才回放', () => {

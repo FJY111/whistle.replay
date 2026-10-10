@@ -9,10 +9,19 @@ interface Props {
   saveActive: boolean;
   replayActive: boolean;
   dark: boolean;
+  capturesOpen: boolean;
+  onToggleCaptures: () => void;
   onToggleDark: () => void;
 }
 
-export default function AppHeader({ saveActive, replayActive, dark, onToggleDark }: Props) {
+export default function AppHeader({
+  saveActive,
+  replayActive,
+  dark,
+  capturesOpen,
+  onToggleCaptures,
+  onToggleDark,
+}: Props) {
   return (
     <header className="app-header">
       <div className="app-header-brand">
@@ -29,6 +38,9 @@ export default function AppHeader({ saveActive, replayActive, dark, onToggleDark
         <span className={`status-pill${replayActive ? ' on' : ''}`}>
           回放 {replayActive ? '开' : '关'}
         </span>
+        <Button type={capturesOpen ? 'primary' : 'default'} onClick={onToggleCaptures}>
+          已保存流量
+        </Button>
         <Button
           aria-label={dark ? '切换为浅色主题' : '切换为暗色主题'}
           icon={dark ? <SunOutlined /> : <MoonOutlined />}

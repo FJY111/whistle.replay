@@ -1,6 +1,8 @@
 import type { CaptureMeta, ReplayRule, SaveRule } from '../server/core/model.ts';
+import type { SavedCapture } from '../server/core/replayCatalog.ts';
 
 export type { CaptureMeta, ReplayRule, SaveRule, SaveType } from '../server/core/model.ts';
+export type { SavedCapture };
 export { HTTP_METHODS } from '../server/core/model.ts';
 
 export interface Settings {
@@ -51,6 +53,12 @@ export interface WriteFileResult {
 export interface RulesResult {
   ec: number;
   em?: string;
+}
+
+export interface CapturesResult {
+  ec: number;
+  em?: string;
+  captures: SavedCapture[];
 }
 
 export const genId = (): string =>

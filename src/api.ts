@@ -1,4 +1,5 @@
 import type {
+  CapturesResult,
   ListFilesResult,
   ReadFileResult,
   ReplayRule,
@@ -79,6 +80,24 @@ export function setActive(
 
 export function setSaveRules(rules: SaveRule[]): Promise<RulesResult> {
   return postForm('cgi-bin/set-save-rules', { rules: JSON.stringify(rules) });
+}
+
+export async function listCaptures(): Promise<CapturesResult> {
+  const res = await fetch('cgi-bin/list-captures', {
+    headers: { Accept: 'application/json' },
+  });
+  if (!res.ok) {
+    throw new Error('load failed');
+  }
+  return res.json() as Promise<CapturesResult>;
+}
+
+export function setCaptureSkip(dir: string, file: string, skip: boolean): Promise<RulesResult> {
+  return postForm('cgi-bin/set-capture-skip', { dir, file, skip: skip ? '1' : '0' });
+}
+
+export function deleteCapture(dir: string, file: string): Promise<RulesResult> {
+  return postForm('cgi-bin/delete-capture', { dir, file });
 }
 
 export function setReplayRules(rules: ReplayRule[]): Promise<RulesResult> {

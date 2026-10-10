@@ -7,6 +7,7 @@ import type { Settings } from './types';
 
 import { getSettings } from './api';
 import AppHeader from './components/AppHeader';
+import CapturesPage from './components/CapturesPage';
 import ReplayPanel from './components/ReplayPanel';
 import SavePanel from './components/SavePanel';
 import { getInitialDark, persistDark, ThemeContext } from './theme';
@@ -20,6 +21,7 @@ export default function App() {
   const [dark, setDark] = useState(getInitialDark);
   const [saveActive, setSaveActive] = useState(false);
   const [replayActive, setReplayActive] = useState(true);
+  const [capturesOpen, setCapturesOpen] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -74,26 +76,34 @@ export default function App() {
                 dark={dark}
                 replayActive={replayActive}
                 saveActive={saveActive}
+                capturesOpen={capturesOpen}
+                onToggleCaptures={() => {
+                  setCapturesOpen((value) => !value);
+                }}
                 onToggleDark={() => {
                   setDark((value) => !value);
                 }}
               />
-              <main className="layout">
-                <SavePanel
-                  initialActive={settings.saveActive}
-                  initialRules={settings.saveRules}
-                  onActiveChange={setSaveActive}
-                />
-                <div className="side-stack">
-                  <ReplayPanel
-                    initialActive={settings.replayActive}
-                    initialRules={settings.replayRules}
-                    variant="allow"
-                    onActiveChange={setReplayActive}
+              {capturesOpen ? (
+                <CapturesPage />
+              ) : (
+                <main className="layout">
+                  <SavePanel
+                    initialActive={settings.saveActive}
+                    initialRules={settings.saveRules}
+                    onActiveChange={setSaveActive}
                   />
-                  <ReplayPanel initialRules={settings.blockRules} variant="block" />
-                </div>
-              </main>
+                  <div className="side-stack">
+                    <ReplayPanel
+                      initialActive={settings.replayActive}
+                      initialRules={settings.replayRules}
+                      variant="allow"
+                      onActiveChange={setReplayActive}
+                    />
+                    <ReplayPanel initialRules={settings.blockRules} variant="block" />
+                  </div>
+                </main>
+              )}
             </div>
           ) : (
             <div className="app-loading">

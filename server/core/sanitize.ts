@@ -145,7 +145,7 @@ export function sanitizeSaveRules(input: unknown): SaveRule[] {
   return result;
 }
 
-export function sanitizeReplayRules(input: unknown): ReplayRule[] {
+export function sanitizeReplayRules(input: unknown, namePrefix = '回放'): ReplayRule[] {
   if (!Array.isArray(input)) {
     return [];
   }
@@ -171,7 +171,7 @@ export function sanitizeReplayRules(input: unknown): ReplayRule[] {
     seen.add(id);
     result.push({
       id,
-      name: toName(raw.name, `回放 ${String(result.length + 1)}`),
+      name: toName(raw.name, `${namePrefix} ${String(result.length + 1)}`),
       enabled: raw.enabled === true,
       host,
       pattern,
@@ -196,3 +196,6 @@ const parseRules = <T>(raw: unknown, sanitize: (input: unknown) => T[]): T[] => 
 export const parseSaveRules = (raw: unknown): SaveRule[] => parseRules(raw, sanitizeSaveRules);
 export const parseReplayRules = (raw: unknown): ReplayRule[] =>
   parseRules(raw, sanitizeReplayRules);
+
+export const parseBlockRules = (raw: unknown): ReplayRule[] =>
+  parseRules(raw, (input) => sanitizeReplayRules(input, '黑名单'));

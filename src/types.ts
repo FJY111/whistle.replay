@@ -10,6 +10,7 @@ export interface Settings {
   saveRules: SaveRule[];
   replayActive: boolean;
   replayRules: ReplayRule[];
+  blockRules: ReplayRule[];
 }
 
 export interface FileInfo {

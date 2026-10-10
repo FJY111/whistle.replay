@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 
 import {
   isSafeFileName,
+  parseBlockRules,
   parseReplayRules,
   parseSaveRules,
   sanitizeReplayRules,
@@ -103,4 +104,8 @@ test('parse: 从 storage 字符串解析，坏数据返回空列表', () => {
   expect(parseReplayRules(undefined)).toHaveLength(0);
   expect(parseSaveRules(JSON.stringify([{ pattern: '/a' }]))).toHaveLength(1);
   expect(parseReplayRules(JSON.stringify([{ pattern: '/health', enabled: true }]))).toHaveLength(1);
+  expect(parseBlockRules(JSON.stringify([{ host: 'shop.example', enabled: true }]))[0]?.name).toBe(
+    '黑名单 1',
+  );
+  expect(parseBlockRules('not-json')).toHaveLength(0);
 });

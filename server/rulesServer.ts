@@ -16,7 +16,7 @@ import { firstText, hostnameOf, pathnameOf, replayKey } from './core/pathname';
 import { isReplayActive, shouldReplay } from './core/replayAllow';
 import { buildFileReplay, buildSseReplay } from './core/replayRule';
 import { findLatestReplay } from './core/replayStore';
-import { isSafeFileName, parseReplayRules } from './core/sanitize';
+import { isSafeFileName, parseBlockRules, parseReplayRules } from './core/sanitize';
 import { getConfiguredDirs, getSaveDirs } from './core/settings';
 import { splitSseEvents } from './sseStream';
 
@@ -110,8 +110,8 @@ function startStreamServer(storage: WhistlePluginContext['storage']): void {
 }
 
 /**
- * 动态规则：回放开关打开且请求命中白名单时，按 pathname + 方法回放最新的保存结果。
- * 白名单可按主机名、pathname 或两者同时匹配。开关关闭、未命中或没有可回放文件时不注入规则。
+ * 动态规则：回放开关打开、命中白名单且未命中黑名单时，按 pathname + 方法回放最新的保存结果。
+ * 白名单和黑名单都可按主机名、pathname 或两者同时匹配。开关关闭、未命中白名单、命中黑名单或没有可回放文件时不注入规则。
  */
 function rulesServer(server: WhistleServer, { storage }: WhistlePluginContext): void {
   startStreamServer(storage);
@@ -147,6 +147,7 @@ function rulesServer(server: WhistleServer, { storage }: WhistlePluginContext): 
           pathname,
           method ?? '',
           parseReplayRules(storage.getProperty('replayRules')),
+          parseBlockRules(storage.getProperty('blockRules')),
         )
       ) {
         done();

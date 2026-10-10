@@ -22,7 +22,7 @@ export interface SaveRule {
   prettyJson: boolean;
 }
 
-/** 需要回放的白名单。域名和路径都可选，但至少填一项；命中才回放 */
+/** 回放白名单或黑名单。域名和路径都可选，但至少填一项 */
 export interface ReplayRule {
   id: string;
   name: string;

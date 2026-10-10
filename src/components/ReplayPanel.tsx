@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { PlayCircleOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined, PlusOutlined, SearchOutlined, StopOutlined } from '@ant-design/icons';
 import { App as AntApp, Button, Input, Switch, Tag } from 'antd';
 
 import DirtyBar from './DirtyBar';
@@ -10,16 +10,17 @@ import RuleCard from './RuleCard';
 
 import type { ReplayRule } from '../types';
 
-import { setActive, setReplayRules } from '../api';
+import { setActive, setBlockRules, setReplayRules } from '../api';
 import { genId } from '../types';
 import { matchesQuery } from '../utils';
 
 import './Panel.css';
 
 interface Props {
-  initialActive: boolean;
+  variant: 'allow' | 'block';
+  initialActive?: boolean;
   initialRules: ReplayRule[];
-  onActiveChange: (active: boolean) => void;
+  onActiveChange?: (active: boolean) => void;
 }
 
 const newRule = (): ReplayRule => ({
@@ -41,8 +42,14 @@ function matchLabel(rule: ReplayRule): string {
   return `${rule.pattern} · 任意域名`;
 }
 
-export default function ReplayPanel({ initialActive, initialRules, onActiveChange }: Props) {
+export default function ReplayPanel({
+  variant,
+  initialActive = true,
+  initialRules,
+  onActiveChange,
+}: Props) {
   const { message } = AntApp.useApp();
+  const isAllow = variant === 'allow';
   const [active, setActiveState] = useState(initialActive);
   const [rules, setRules] = useState<ReplayRule[]>(initialRules);
   const [dirty, setDirty] = useState(false);
@@ -110,7 +117,7 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
     }
     activePending.current = true;
     setActiveState(checked);
-    onActiveChange(checked);
+    onActiveChange?.(checked);
     setActive(checked, 'replay')
       .then(() => {
         activePending.current = false;
@@ -119,21 +126,22 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
       .catch(() => {
         activePending.current = false;
         setActiveState(!checked);
-        onActiveChange(!checked);
+        onActiveChange?.(!checked);
         message.error('提交失败，请稍后重试');
       });
   }
 
   function handleSave() {
     setSaving(true);
-    setReplayRules(rules)
+    const save = isAllow ? setReplayRules(rules) : setBlockRules(rules);
+    save
       .then((data) => {
         if (data.ec) {
           message.error(data.em ?? '保存失败');
           return;
         }
         setDirty(false);
-        message.success('回放规则已更新');
+        message.success(isAllow ? '回放规则已更新' : '黑名单已更新');
       })
       .catch(() => {
         message.error('提交失败，请稍后重试');
@@ -160,28 +168,39 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
     matchesQuery(query, rule.name, rule.host, rule.pattern),
   );
   const hasEnabled = rules.some((rule) => rule.enabled);
-  const statusText = !active
-    ? '回放已关闭，请求继续访问真实服务器。'
+  const statusText = isAllow
+    ? !active
+      ? '回放已关闭，请求继续访问真实服务器。'
+      : hasEnabled
+        ? '只有命中下面启用规则、且未命中黑名单的请求才会回放。'
+        : '开关已开，但没有启用的白名单，请求继续访问真实服务器。'
     : hasEnabled
-      ? '只有命中下面启用规则的请求才会回放。'
-      : '开关已开，但没有启用的白名单，请求继续访问真实服务器。';
+      ? '命中任意一条启用规则就不回放。黑名单不影响保存。'
+      : '还没有启用的黑名单。只命中白名单的请求仍会回放。';
 
   return (
     <section className="panel">
       <div className="panel-head">
         <div className="panel-title">
-          <PlayCircleOutlined className="panel-icon" />
-          <span>需要回放</span>
+          {isAllow ? (
+            <PlayCircleOutlined className="panel-icon" />
+          ) : (
+            <StopOutlined className="panel-icon" />
+          )}
+          <span>{isAllow ? '需要回放' : '黑名单'}</span>
         </div>
-        <span className="panel-switch">
-          启用
-          <Switch checked={active} onChange={handleToggleActive} />
-        </span>
+        {isAllow ? (
+          <span className="panel-switch">
+            启用
+            <Switch checked={active} onChange={handleToggleActive} />
+          </span>
+        ) : null}
       </div>
       <span className="panel-desc">
         {statusText}
-        白名单可按域名、路径或两者一起匹配。域名只比较主机名，路径只比较 pathname，都支持子串或
-        /正则/i。两者都填时必须同时命中，还可限制 HTTP 方法。未命中则访问真实服务器。
+        {isAllow
+          ? '白名单可按域名、路径或两者一起匹配。域名只比较主机名，路径只比较 pathname，都支持子串或 /正则/i。两者都填时必须同时命中，还可限制 HTTP 方法。未命中白名单或命中黑名单则访问真实服务器。'
+          : '黑名单和白名单用同一套匹配：域名只比较主机名，路径只比较 pathname，都支持子串或 /正则/i。两者都填时必须同时命中，还可限制 HTTP 方法。命中任意一条启用规则就不回放，保存不受影响。'}
       </span>
 
       {rules.length > 0 ? (
@@ -219,12 +238,20 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
 
       {rules.length === 0 ? (
         <EmptyState
-          steps={[
-            '打开上方回放开关',
-            '添加一条白名单，填写域名、路径，或两者都填',
-            '点击更新配置后，命中的请求才会回放',
-          ]}
-          title="暂无回放规则"
+          steps={
+            isAllow
+              ? [
+                  '打开上方回放开关',
+                  '添加一条白名单，填写域名、路径，或两者都填',
+                  '点击更新配置后，命中且不在黑名单里的请求才会回放',
+                ]
+              : [
+                  '添加一条黑名单，填写域名、路径，或两者都填',
+                  '点击更新配置后，命中的请求不再回放',
+                  '保存规则不受黑名单影响',
+                ]
+          }
+          title={isAllow ? '暂无回放规则' : '暂无黑名单'}
         />
       ) : visibleRules.length === 0 ? (
         <EmptyState steps={['清空筛选后再试']} title="没有符合筛选的规则" />
@@ -243,9 +270,13 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
                 pattern={matchLabel(rule)}
                 summary={
                   <span>
-                    {rule.host && rule.pattern
-                      ? '域名和路径都命中后才回放最新的一条'
-                      : '命中后才回放最新的一条'}
+                    {isAllow
+                      ? rule.host && rule.pattern
+                        ? '域名和路径都命中后才回放最新的一条'
+                        : '命中后才回放最新的一条'
+                      : rule.host && rule.pattern
+                        ? '域名和路径都命中后不回放'
+                        : '命中后不回放'}
                   </span>
                 }
                 tags={
@@ -315,14 +346,18 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
           setEditing(newRule());
         }}
       >
-        添加回放规则
+        {isAllow ? '添加回放规则' : '添加黑名单'}
       </Button>
 
       {dirty ? <DirtyBar saving={saving} onSave={handleSave} /> : null}
 
       {editing ? (
         <ReplayRuleEditor
+          methodHint={
+            isAllow ? '不选表示命中该规则的全部方法都回放' : '不选表示命中该规则的全部方法都不回放'
+          }
           rule={editing}
+          title={isAllow ? '编辑回放规则' : '编辑黑名单'}
           onCancel={() => {
             setEditing(null);
           }}

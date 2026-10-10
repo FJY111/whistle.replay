@@ -11,6 +11,8 @@ import './RuleEditor.css';
 
 interface Props {
   rule: ReplayRule;
+  title: string;
+  methodHint: string;
   onCancel: () => void;
   onOk: (rule: ReplayRule) => void;
 }
@@ -20,7 +22,7 @@ interface Errors {
   pattern?: string;
 }
 
-export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
+export default function ReplayRuleEditor({ rule, title, methodHint, onCancel, onOk }: Props) {
   const [draft, setDraft] = useState<ReplayRule>(() => ({
     ...rule,
     host: rule.host,
@@ -70,7 +72,7 @@ export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
       }
       open
       size={420}
-      title="编辑回放规则"
+      title={title}
       onClose={onCancel}
     >
       <Field extra="留空时以域名或路径作为名称" label="名称">
@@ -116,7 +118,7 @@ export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
         />
       </Field>
 
-      <Field extra="不选表示命中该规则的全部方法都回放" label="HTTP 方法">
+      <Field extra={methodHint} label="HTTP 方法">
         <Select
           allowClear
           mode="multiple"

@@ -1,4 +1,4 @@
-/** 是否回放：总开关关闭则一律不回放；开启时只有命中白名单才回放。白名单可限制主机名、路径或两者 */
+/** 是否回放：总开关开启，且命中白名单，且未命中黑名单。两边都可限制主机名、路径或两者 */
 
 import type { ReplayRule } from './model';
 
@@ -17,8 +17,8 @@ function matchesOptional(value: string, pattern: string): boolean {
   return testPattern(value, pattern);
 }
 
-/** 白名单：域名只比主机名，路径只比 pathname。两者都填时必须同时命中 */
-export function isReplayAllowed(
+/** 域名只比主机名，路径只比 pathname。两者都填时必须同时命中。停用或两项都空的规则不算 */
+function matchesAnyRule(
   hostname: string,
   pathname: string,
   method: string,
@@ -35,16 +35,43 @@ export function isReplayAllowed(
   });
 }
 
-/** 总开关关闭，或未命中任一启用的白名单时，不回放 */
-export function shouldReplay(
-  replayActive: boolean,
+/** 白名单：命中任一启用规则才允许进入回放 */
+export function isReplayAllowed(
   hostname: string,
   pathname: string,
   method: string,
   rules: readonly ReplayRule[],
 ): boolean {
+  return matchesAnyRule(hostname, pathname, method, rules);
+}
+
+/** 黑名单：命中任一启用规则就不回放。匹配方式和白名单相同 */
+export function isReplayBlocked(
+  hostname: string,
+  pathname: string,
+  method: string,
+  rules: readonly ReplayRule[],
+): boolean {
+  return matchesAnyRule(hostname, pathname, method, rules);
+}
+
+/**
+ * 总开关关闭、未命中白名单，或命中黑名单时，不回放。
+ * 黑名单为空时只看白名单。
+ */
+export function shouldReplay(
+  replayActive: boolean,
+  hostname: string,
+  pathname: string,
+  method: string,
+  allowRules: readonly ReplayRule[],
+  blockRules: readonly ReplayRule[] = [],
+): boolean {
   if (!replayActive) {
     return false;
   }
-  return isReplayAllowed(hostname, pathname, method, rules);
+  if (!isReplayAllowed(hostname, pathname, method, allowRules)) {
+    return false;
+  }
+  return !isReplayBlocked(hostname, pathname, method, blockRules);
 }

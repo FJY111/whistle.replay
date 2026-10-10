@@ -84,3 +84,7 @@ export function setSaveRules(rules: SaveRule[]): Promise<RulesResult> {
 export function setReplayRules(rules: ReplayRule[]): Promise<RulesResult> {
   return postForm('cgi-bin/set-replay-rules', { rules: JSON.stringify(rules) });
 }
+
+export function setBlockRules(rules: ReplayRule[]): Promise<RulesResult> {
+  return postForm('cgi-bin/set-block-rules', { rules: JSON.stringify(rules) });
+}

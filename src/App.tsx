@@ -84,11 +84,15 @@ export default function App() {
                   initialRules={settings.saveRules}
                   onActiveChange={setSaveActive}
                 />
-                <ReplayPanel
-                  initialActive={settings.replayActive}
-                  initialRules={settings.replayRules}
-                  onActiveChange={setReplayActive}
-                />
+                <div className="side-stack">
+                  <ReplayPanel
+                    initialActive={settings.replayActive}
+                    initialRules={settings.replayRules}
+                    variant="allow"
+                    onActiveChange={setReplayActive}
+                  />
+                  <ReplayPanel initialRules={settings.blockRules} variant="block" />
+                </div>
               </main>
             </div>
           ) : (

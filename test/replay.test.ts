@@ -170,6 +170,66 @@ test('shouldReplay: 域名和路径可单独或同时作为白名单', () => {
   ).toBe(false);
 });
 
+test('shouldReplay: 必须命中白名单，且未命中黑名单', () => {
+  const allowed: ReplayRule = {
+    id: 'a',
+    name: '商品',
+    enabled: true,
+    host: 'shop.example',
+    pattern: '/api/items',
+    methods: ['GET'],
+  };
+  const allow = [allowed];
+  const blocked: ReplayRule = {
+    id: 'b',
+    name: '排除',
+    enabled: true,
+    host: '',
+    pattern: '/api/items',
+    methods: [],
+  };
+  const allowAnyMethod: ReplayRule = { ...allowed, methods: [] };
+  expect(shouldReplay(true, 'shop.example', '/api/items', 'GET', allow, [])).toBe(true);
+  expect(shouldReplay(true, 'shop.example', '/api/items', 'GET', allow, [blocked])).toBe(false);
+  expect(
+    shouldReplay(true, 'shop.example', '/api/items', 'GET', allow, [
+      { ...blocked, enabled: false },
+    ]),
+  ).toBe(true);
+  expect(shouldReplay(true, 'shop.example', '/api/items', 'GET', [], [blocked])).toBe(false);
+  expect(shouldReplay(true, 'other.example', '/other', 'GET', allow, [])).toBe(false);
+  expect(shouldReplay(false, 'shop.example', '/api/items', 'GET', allow, [])).toBe(false);
+  expect(
+    shouldReplay(true, 'shop.example', '/api/items', 'GET', allow, [
+      { id: 'h', name: '域', enabled: true, host: 'shop.example', pattern: '', methods: [] },
+    ]),
+  ).toBe(false);
+  expect(
+    shouldReplay(true, 'shop.example', '/api/items', 'GET', allow, [
+      { id: 'm', name: '方法', enabled: true, host: '', pattern: '/api/items', methods: ['POST'] },
+    ]),
+  ).toBe(true);
+  expect(
+    shouldReplay(
+      true,
+      'shop.example',
+      '/api/items',
+      'POST',
+      [allowAnyMethod],
+      [
+        {
+          id: 'p',
+          name: '路径',
+          enabled: true,
+          host: 'shop.example',
+          pattern: '/api/hidden',
+          methods: [],
+        },
+      ],
+    ),
+  ).toBe(true);
+});
+
 test('captureHeaders 与回放头: 去掉传输层字段，保留业务头', () => {
   const captured = captureHeaders({
     'Content-Type': 'application/json',

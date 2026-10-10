@@ -1,25 +1,15 @@
 /** 把外部输入清洗为合法的规则列表（去重、封顶、填默认值；纯函数，id 生成除外） */
 
 import {
-  DEFAULT_DELAY,
-  DEFAULT_HIT_RATE,
   DEFAULT_MAX_BODY_KB,
-  DEFAULT_STATUS_CODE,
   HTTP_METHODS,
   MAX_BODY_KB_LIMIT,
-  MAX_DELAY,
   MAX_DIR_LEN,
-  MAX_FILES_PER_RULE,
-  MAX_HEADER_NAME_LEN,
-  MAX_HEADER_VALUE_LEN,
-  MAX_HEADERS,
   MAX_ID_LEN,
   MAX_NAME_LEN,
   MAX_PATTERN_LEN,
   MAX_RULES,
-  type MockMode,
-  type MockRule,
-  type MockType,
+  type ReplayRule,
   SAVE_TYPES,
   type SaveRule,
   type SaveType,
@@ -62,6 +52,24 @@ const toPattern = (val: unknown): string | null => {
   return pattern;
 };
 
+/** 可空的匹配规则。缺省或空白为任意；写了但非法则整条规则丢弃 */
+const toOptionalPattern = (val: unknown): string | null => {
+  if (val == null) {
+    return '';
+  }
+  if (typeof val !== 'string') {
+    return null;
+  }
+  const pattern = val.trim();
+  if (!pattern) {
+    return '';
+  }
+  if (pattern.length > MAX_PATTERN_LEN || !isValidPattern(pattern)) {
+    return null;
+  }
+  return pattern;
+};
+
 const toMethods = (val: unknown): string[] => {
   if (!Array.isArray(val)) {
     return [];
@@ -96,74 +104,6 @@ const toMaxBodyKB = (val: unknown): number => {
     return DEFAULT_MAX_BODY_KB;
   }
   return Math.min(MAX_BODY_KB_LIMIT, Math.max(0, Math.round(val)));
-};
-
-const toMode = (val: unknown): MockMode =>
-  val === 'round-robin' || val === 'random' ? val : 'fixed';
-
-const toType = (val: unknown, firstFile: string): MockType => {
-  if (val === 'json' || val === 'text' || val === 'sse') {
-    return val;
-  }
-  return /\.json$/i.test(firstFile) ? 'json' : 'text';
-};
-
-const toDelay = (val: unknown): number => {
-  if (typeof val !== 'number' || !Number.isFinite(val)) {
-    return DEFAULT_DELAY;
-  }
-  return Math.min(MAX_DELAY, Math.max(0, Math.round(val)));
-};
-
-const toHitRate = (val: unknown): number => {
-  if (typeof val !== 'number' || !Number.isFinite(val)) {
-    return DEFAULT_HIT_RATE;
-  }
-  return Math.min(100, Math.max(1, Math.round(val)));
-};
-
-const toStatusCode = (val: unknown): number => {
-  if (typeof val !== 'number' || !Number.isFinite(val)) {
-    return DEFAULT_STATUS_CODE;
-  }
-  const code = Math.round(val);
-  return code >= 100 && code <= 599 ? code : DEFAULT_STATUS_CODE;
-};
-
-const toHeaders = (val: unknown): Record<string, string> => {
-  if (!val || typeof val !== 'object' || Array.isArray(val)) {
-    return {};
-  }
-  const result: Record<string, string> = {};
-  for (const [rawName, rawValue] of Object.entries(val)) {
-    if (Object.keys(result).length >= MAX_HEADERS) {
-      break;
-    }
-    const name = rawName.trim().toLowerCase().slice(0, MAX_HEADER_NAME_LEN);
-    if (!name || !/^[!#$%&'*+\-.^_`|~0-9a-z]+$/.test(name) || typeof rawValue !== 'string') {
-      continue;
-    }
-    result[name] = rawValue.replace(/[\r\n]+/g, ' ').slice(0, MAX_HEADER_VALUE_LEN);
-  }
-  return result;
-};
-
-const toFiles = (val: unknown): string[] => {
-  if (!Array.isArray(val)) {
-    return [];
-  }
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const item of val) {
-    if (result.length >= MAX_FILES_PER_RULE) {
-      break;
-    }
-    if (isSafeFileName(item) && !seen.has(item)) {
-      seen.add(item);
-      result.push(item);
-    }
-  }
-  return result;
 };
 
 export function sanitizeSaveRules(input: unknown): SaveRule[] {
@@ -205,12 +145,12 @@ export function sanitizeSaveRules(input: unknown): SaveRule[] {
   return result;
 }
 
-export function sanitizeMockRules(input: unknown): MockRule[] {
+export function sanitizeReplayRules(input: unknown, namePrefix = '回放'): ReplayRule[] {
   if (!Array.isArray(input)) {
     return [];
   }
   const seen = new Set<string>();
-  const result: MockRule[] = [];
+  const result: ReplayRule[] = [];
   for (const item of input) {
     if (result.length >= MAX_RULES) {
       break;
@@ -219,9 +159,9 @@ export function sanitizeMockRules(input: unknown): MockRule[] {
       continue;
     }
     const raw = item as Record<string, unknown>;
-    const pattern = toPattern(raw.pattern);
-    const files = toFiles(raw.files);
-    if (pattern === null || !files.length) {
+    const host = toOptionalPattern(raw.host);
+    const pattern = toOptionalPattern(raw.pattern);
+    if (host === null || pattern === null || (!host && !pattern)) {
       continue;
     }
     const id = toId(raw.id);
@@ -231,19 +171,11 @@ export function sanitizeMockRules(input: unknown): MockRule[] {
     seen.add(id);
     result.push({
       id,
-      name: toName(raw.name, `规则 ${String(result.length + 1)}`),
+      name: toName(raw.name, `${namePrefix} ${String(result.length + 1)}`),
       enabled: raw.enabled === true,
+      host,
       pattern,
       methods: toMethods(raw.methods),
-      dir: toDir(raw.dir),
-      files,
-      mode: toMode(raw.mode),
-      type: toType(raw.type, files[0] ?? ''),
-      delay: toDelay(raw.delay),
-      delayJitter: toDelay(raw.delayJitter),
-      hitRate: toHitRate(raw.hitRate),
-      statusCode: toStatusCode(raw.statusCode),
-      headers: toHeaders(raw.headers),
     });
   }
   return result;
@@ -262,4 +194,8 @@ const parseRules = <T>(raw: unknown, sanitize: (input: unknown) => T[]): T[] => 
 
 /** 从 storage 中的 JSON 字符串解析规则列表 */
 export const parseSaveRules = (raw: unknown): SaveRule[] => parseRules(raw, sanitizeSaveRules);
-export const parseMockRules = (raw: unknown): MockRule[] => parseRules(raw, sanitizeMockRules);
+export const parseReplayRules = (raw: unknown): ReplayRule[] =>
+  parseRules(raw, sanitizeReplayRules);
+
+export const parseBlockRules = (raw: unknown): ReplayRule[] =>
+  parseRules(raw, (input) => sanitizeReplayRules(input, '黑名单'));

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { SaveType } from './core/model';
+import type { CaptureMeta, SaveType } from './core/model';
 import type {
   WhistlePluginContext,
   WhistleRequest,
@@ -9,25 +9,28 @@ import type {
   WhistleSession,
 } from './types/whistle';
 
-import { recordMeta } from './core/metaStore';
-import { consumeMocked, isStreamReq } from './core/mockMark';
-import { testMethod, testPattern } from './core/pattern';
+import { fitRequestBody, normalizeStatusCode, readBody } from './core/capture';
+import { captureHeaders, replayResponseHeaders } from './core/headers';
+import { consumeReplayed, isStreamReq } from './core/mockMark';
+import { firstText, normalizeMethod, pathnameOf, replayKey } from './core/pathname';
+import { commitSavedCapture } from './core/replayStore';
 import { parseSaveRules } from './core/sanitize';
-import { testStatusCode } from './core/statusCodes';
+import {
+  acceptResponseBody,
+  isSlowSave,
+  responseDurationMs,
+  shouldSaveForRule,
+} from './core/savePolicy';
 import { joinSseFrames } from './sseStream';
 
-/** 保存响应体并在索引中记录来源信息（供 mock 界面展示与类型推断） */
-const saveBody = (
-  dir: string,
-  fileName: string,
-  body: string,
-  url: string,
-  contentType: string,
-  method: string,
-): void => {
+const requestUrlOf = (req: WhistleRequest): string =>
+  firstText(req.originalReq.fullUrl, req.originalReq.url);
+
+/** 保存响应体，并写入展示索引与回放目录 */
+const saveBody = (dir: string, fileName: string, body: string, meta: CaptureMeta): void => {
   const filePath = path.resolve(dir, fileName);
   const record = (): void => {
-    recordMeta(dir, fileName, { url, contentType, method, time: Date.now() });
+    commitSavedCapture(dir, fileName, meta);
   };
   fs.writeFile(filePath, body, (err) => {
     if (err) {
@@ -70,25 +73,9 @@ const getMethodName = (url?: string): string => {
   if (!url) {
     return 'unknown';
   }
-  const pathname = url.split('?')[0]?.split('#')[0] ?? '';
+  const pathname = pathnameOf(url) ?? '';
   const segments = pathname.split('/').filter(Boolean);
   return segments.length ? (segments[segments.length - 1] ?? 'unknown') : 'unknown';
-};
-
-const toText = (body: unknown): string => {
-  if (body == null) {
-    return '';
-  }
-  if (Buffer.isBuffer(body)) {
-    return body.toString('utf8');
-  }
-  if (typeof body === 'string') {
-    return body;
-  }
-  if (typeof body === 'number' || typeof body === 'boolean' || typeof body === 'bigint') {
-    return String(body);
-  }
-  return '';
 };
 
 /**
@@ -125,17 +112,19 @@ function resStatsServer(server: WhistleServer, { storage, config }: WhistlePlugi
     if (!storage.getProperty('saveActive')) {
       return;
     }
-    const url = req.originalReq.url;
+    const url = requestUrlOf(req);
     const method = req.originalReq.method;
-    if (!url || isStreamReq(url) || consumeMocked(url)) {
+    if (!url || isStreamReq(url)) {
+      return;
+    }
+    const pathname = pathnameOf(url);
+    const normalizedMethod = normalizeMethod(method);
+    const key = pathname && normalizedMethod ? replayKey(normalizedMethod, pathname) : null;
+    if (key && consumeReplayed(key)) {
       return;
     }
     const rules = parseSaveRules(storage.getProperty('saveRules')).filter(
-      (rule) =>
-        rule.enabled &&
-        rule.dir &&
-        testPattern(url, rule.pattern) &&
-        testMethod(method, rule.methods),
+      (rule) => rule.enabled && rule.dir,
     );
     if (!rules.length) {
       return;
@@ -144,22 +133,39 @@ function resStatsServer(server: WhistleServer, { storage, config }: WhistlePlugi
       if (!s) {
         return;
       }
-      const headers = s.resHeaders ?? s.res?.headers ?? {};
-      const contentType = headers['content-type'] ?? headers['Content-Type'] ?? '';
+      const slow = isSlowSave(responseDurationMs(s));
+      const rawHeaders = s.res?.headers ?? s.resHeaders ?? {};
+      const capturedResponseHeaders = captureHeaders(rawHeaders);
+      const contentType = capturedResponseHeaders['content-type'] ?? '';
       const saveType = classify(contentType);
       if (!saveType) {
         return;
       }
-      const statusCode = s.statusCode ?? s.res?.statusCode;
+      const statusCode = normalizeStatusCode(
+        s.res?.statusCode ?? s.statusCode ?? req.originalRes?.statusCode,
+      );
+      const responseHeaders = replayResponseHeaders(capturedResponseHeaders);
+      const requestHeaders = captureHeaders(
+        s.req?.headers ?? req.originalReq.headers ?? req.headers,
+      );
+      const requestRaw = readBody(s.req?.body);
+      const savedAt = Date.now();
+
       const apply = (body: string): void => {
-        if (!body) {
+        if (body.length === 0) {
           return;
         }
         for (const rule of rules) {
-          if (!rule.saveTypes.includes(saveType)) {
-            continue;
-          }
-          if (!testStatusCode(statusCode, rule.statusCodes)) {
+          if (
+            !shouldSaveForRule({
+              rule,
+              url,
+              method,
+              saveType,
+              statusCode,
+              slow,
+            })
+          ) {
             continue;
           }
           let output = body;
@@ -173,26 +179,44 @@ function resStatsServer(server: WhistleServer, { storage, config }: WhistlePlugi
           if (rule.maxBodyKB > 0 && Buffer.byteLength(output, 'utf8') > rule.maxBodyKB * 1024) {
             continue;
           }
-          const name = `${username}${getMethodName(url)}_${String(Date.now())}.${extOf(saveType)}`;
-          saveBody(
-            rule.dir,
-            name,
-            output,
+          const fitted = fitRequestBody(requestRaw.text, requestRaw.binary, rule.maxBodyKB);
+          const unique = Math.random().toString(36).slice(2, 8);
+          const name = `${username}${getMethodName(url)}_${String(savedAt)}_${unique}.${extOf(saveType)}`;
+          const meta: CaptureMeta = {
             url,
-            typeof contentType === 'string' ? contentType : '',
-            method ?? '',
-          );
+            pathname: pathname ?? '',
+            method: normalizedMethod ?? '',
+            time: savedAt,
+            statusCode,
+            contentType,
+            requestHeaders,
+            requestBody: fitted.requestBody,
+            requestBodyOmitted: fitted.requestBodyOmitted,
+            responseHeaders,
+          };
+          saveBody(rule.dir, name, output, meta);
         }
       };
 
-      const body = toText(s.resBody ?? s.res?.body);
-      if (body) {
-        apply(body);
+      const response = readBody(s.resBody ?? s.res?.body);
+      if (response.binary) {
         return;
       }
-      if (saveType === 'sse' || s.isSse || s.isCse) {
-        collectSseBody(req, s, apply);
+      if ((saveType === 'sse' || s.isSse || s.isCse) && response.text.length === 0) {
+        collectSseBody(req, s, (body) => {
+          const text = acceptResponseBody(body, false);
+          if (text == null) {
+            return;
+          }
+          apply(text);
+        });
+        return;
       }
+      const text = acceptResponseBody(response.text, false);
+      if (text == null) {
+        return;
+      }
+      apply(text);
     });
   });
 }

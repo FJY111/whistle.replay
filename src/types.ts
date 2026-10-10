@@ -1,6 +1,8 @@
-import type { MockRule, SaveRule } from '../server/core/model.ts';
+import type { CaptureMeta, ReplayRule, SaveRule } from '../server/core/model.ts';
+import type { SavedCapture } from '../server/core/replayCatalog.ts';
 
-export type { MockMode, MockRule, MockType, SaveRule, SaveType } from '../server/core/model.ts';
+export type { CaptureMeta, ReplayRule, SaveRule, SaveType } from '../server/core/model.ts';
+export type { SavedCapture };
 export { HTTP_METHODS } from '../server/core/model.ts';
 
 export interface Settings {
@@ -8,8 +10,9 @@ export interface Settings {
   em?: string;
   saveActive: boolean;
   saveRules: SaveRule[];
-  mockActive: boolean;
-  mockRules: MockRule[];
+  replayActive: boolean;
+  replayRules: ReplayRule[];
+  blockRules: ReplayRule[];
 }
 
 export interface FileInfo {
@@ -19,6 +22,8 @@ export interface FileInfo {
   url?: string;
   contentType?: string;
   method?: string;
+  pathname?: string;
+  statusCode?: number;
 }
 
 export interface ListFilesResult {
@@ -34,6 +39,7 @@ export interface ReadFileResult {
   size?: number;
   truncated?: boolean;
   content?: string;
+  meta?: CaptureMeta;
 }
 
 export interface WriteFileResult {
@@ -47,6 +53,12 @@ export interface WriteFileResult {
 export interface RulesResult {
   ec: number;
   em?: string;
+}
+
+export interface CapturesResult {
+  ec: number;
+  em?: string;
+  captures: SavedCapture[];
 }
 
 export const genId = (): string =>

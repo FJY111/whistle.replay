@@ -1,6 +1,7 @@
 import type { Context } from 'koa';
 
-import { parseMockRules, parseSaveRules } from '../../core/sanitize';
+import { isReplayActive } from '../../core/replayAllow';
+import { parseBlockRules, parseReplayRules, parseSaveRules } from '../../core/sanitize';
 
 function getSettings(ctx: Context): void {
   const { localStorage } = ctx.req;
@@ -8,8 +9,9 @@ function getSettings(ctx: Context): void {
     ec: 0,
     saveActive: localStorage.getProperty('saveActive') === true,
     saveRules: parseSaveRules(localStorage.getProperty('saveRules')),
-    mockActive: localStorage.getProperty('mockActive') === true,
-    mockRules: parseMockRules(localStorage.getProperty('mockRules')),
+    replayActive: isReplayActive(localStorage.getProperty('replayActive')),
+    replayRules: parseReplayRules(localStorage.getProperty('replayRules')),
+    blockRules: parseBlockRules(localStorage.getProperty('blockRules')),
   };
 }
 

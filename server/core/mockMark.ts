@@ -1,32 +1,41 @@
-/** mock 命中标记与内置流式服务状态（进程内存） */
+/** 回放命中标记与内置流式服务状态（进程内存） */
 
-const MARK_TTL = 60 * 1000;
-const MARK_MAX = 1000;
+const MARK_TTL = 5 * 60 * 1000;
 
-const marks = new Map<string, number>();
+/** 同一匹配键上尚未被保存钩子消化的回放次数 */
+const marks = new Map<string, number[]>();
 
-export function markMocked(url: string): void {
-  if (!url) {
+const prune = (times: readonly number[], now: number): number[] =>
+  times.filter((time) => now - time <= MARK_TTL);
+
+export function markReplayed(key: string): void {
+  if (!key) {
     return;
   }
-  if (marks.size >= MARK_MAX) {
-    const now = Date.now();
-    for (const [key, time] of marks) {
-      if (now - time > MARK_TTL) {
-        marks.delete(key);
-      }
-    }
-  }
-  marks.set(url, Date.now());
+  const now = Date.now();
+  const next = prune(marks.get(key) ?? [], now);
+  next.push(now);
+  marks.set(key, next);
 }
 
-export function consumeMocked(url: string): boolean {
-  const time = marks.get(url);
-  if (time == null) {
+/** 这次响应来自回放时返回 true，并消化一次标记，避免把回放结果再保存 */
+export function consumeReplayed(key: string): boolean {
+  if (!key) {
     return false;
   }
-  marks.delete(url);
-  return Date.now() - time <= MARK_TTL;
+  const now = Date.now();
+  const next = prune(marks.get(key) ?? [], now);
+  if (!next.length) {
+    marks.delete(key);
+    return false;
+  }
+  next.shift();
+  if (next.length) {
+    marks.set(key, next);
+  } else {
+    marks.delete(key);
+  }
+  return true;
 }
 
 let streamPort = 0;

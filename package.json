@@ -1,7 +1,7 @@
 {
-  "name": "whistle.sake",
-  "version": "1.0.0",
-  "description": "whistle 插件：按规则自动保存抓包响应，并用保存的文件 Mock 请求（支持多文件轮换）",
+  "name": "whistle.replay",
+  "version": "1.0.5",
+  "description": "whistle 插件：按规则保存抓包响应，并按路径与 HTTP 方法自动回放最新的一条",
   "keywords": [
     "whistle",
     "whistle-plugin",
@@ -11,15 +11,15 @@
     "sse",
     "http"
   ],
-  "homepage": "https://github.com/hyunicode/whistle.sake#readme",
+  "homepage": "https://github.com/FJY111/whistle.replay#readme",
   "bugs": {
-    "url": "https://github.com/hyunicode/whistle.sake/issues"
+    "url": "https://github.com/FJY111/whistle.replay/issues"
   },
   "license": "MIT",
   "author": "Unicode <81250265+hyunicode@users.noreply.github.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hyunicode/whistle.sake.git"
+    "url": "git+https://github.com/FJY111/whistle.replay.git"
   },
   "main": "./lib",
   "files": [

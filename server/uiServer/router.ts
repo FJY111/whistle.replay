@@ -1,21 +1,27 @@
 import type Router from '@koa/router';
 
+import deleteCapture from './cgi/deleteCapture';
 import getSettings from './cgi/getSettings';
+import listCaptures from './cgi/listCaptures';
 import listFiles from './cgi/listFiles';
 import readFile from './cgi/readFile';
-import resetRotation from './cgi/resetRotation';
 import setActive from './cgi/setActive';
-import setMockRules from './cgi/setMockRules';
+import setBlockRules from './cgi/setBlockRules';
+import setCaptureSkip from './cgi/setCaptureSkip';
+import setReplayRules from './cgi/setReplayRules';
 import setSaveRules from './cgi/setSaveRules';
 import writeFile from './cgi/writeFile';
 
 function setupRouter(router: Router): void {
   router.get('/cgi-bin/get-settings', getSettings);
   router.post('/cgi-bin/set-save-rules', setSaveRules);
-  router.post('/cgi-bin/set-mock-rules', setMockRules);
+  router.post('/cgi-bin/set-replay-rules', setReplayRules);
+  router.post('/cgi-bin/set-block-rules', setBlockRules);
   router.post('/cgi-bin/set-active', setActive);
-  router.post('/cgi-bin/reset-rotation', resetRotation);
   router.get('/cgi-bin/list-files', listFiles);
+  router.get('/cgi-bin/list-captures', listCaptures);
+  router.post('/cgi-bin/set-capture-skip', setCaptureSkip);
+  router.post('/cgi-bin/delete-capture', deleteCapture);
   router.get('/cgi-bin/read-file', readFile);
   router.post('/cgi-bin/write-file', writeFile);
 }

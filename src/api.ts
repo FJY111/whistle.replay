@@ -1,7 +1,8 @@
 import type {
+  CapturesResult,
   ListFilesResult,
-  MockRule,
   ReadFileResult,
+  ReplayRule,
   RulesResult,
   SaveRule,
   Settings,
@@ -72,7 +73,7 @@ async function postForm<T>(url: string, data: Record<string, string>): Promise<T
 
 export function setActive(
   active: boolean,
-  type: 'save' | 'mock',
+  type: 'save' | 'replay',
 ): Promise<{ ec: number; active: boolean }> {
   return postForm('cgi-bin/set-active', { active: active ? '1' : '0', type });
 }
@@ -81,10 +82,28 @@ export function setSaveRules(rules: SaveRule[]): Promise<RulesResult> {
   return postForm('cgi-bin/set-save-rules', { rules: JSON.stringify(rules) });
 }
 
-export function setMockRules(rules: MockRule[]): Promise<RulesResult> {
-  return postForm('cgi-bin/set-mock-rules', { rules: JSON.stringify(rules) });
+export async function listCaptures(): Promise<CapturesResult> {
+  const res = await fetch('cgi-bin/list-captures', {
+    headers: { Accept: 'application/json' },
+  });
+  if (!res.ok) {
+    throw new Error('load failed');
+  }
+  return res.json() as Promise<CapturesResult>;
 }
 
-export function resetRotation(ruleId?: string): Promise<RulesResult> {
-  return postForm('cgi-bin/reset-rotation', ruleId ? { ruleId } : {});
+export function setCaptureSkip(dir: string, file: string, skip: boolean): Promise<RulesResult> {
+  return postForm('cgi-bin/set-capture-skip', { dir, file, skip: skip ? '1' : '0' });
+}
+
+export function deleteCapture(dir: string, file: string): Promise<RulesResult> {
+  return postForm('cgi-bin/delete-capture', { dir, file });
+}
+
+export function setReplayRules(rules: ReplayRule[]): Promise<RulesResult> {
+  return postForm('cgi-bin/set-replay-rules', { rules: JSON.stringify(rules) });
+}
+
+export function setBlockRules(rules: ReplayRule[]): Promise<RulesResult> {
+  return postForm('cgi-bin/set-block-rules', { rules: JSON.stringify(rules) });
 }

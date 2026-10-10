@@ -1,4 +1,4 @@
-import { MoonOutlined, SunOutlined } from '@ant-design/icons';
+import { MoonOutlined, QuestionCircleOutlined, SunOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 
 import logo from '../assets/logo.svg';
@@ -7,28 +7,48 @@ import './AppHeader.css';
 
 interface Props {
   saveActive: boolean;
-  mockActive: boolean;
+  replayActive: boolean;
   dark: boolean;
+  capturesOpen: boolean;
+  onToggleCaptures: () => void;
   onToggleDark: () => void;
 }
 
-export default function AppHeader({ saveActive, mockActive, dark, onToggleDark }: Props) {
+export default function AppHeader({
+  saveActive,
+  replayActive,
+  dark,
+  capturesOpen,
+  onToggleCaptures,
+  onToggleDark,
+}: Props) {
   return (
     <header className="app-header">
       <div className="app-header-brand">
         <img alt="" className="app-header-logo" height={28} src={logo} width={28} />
         <div>
-          <strong className="app-header-title">Sake</strong>
-          <span className="app-header-sub">Save and Mock</span>
+          <strong className="app-header-title">Replay</strong>
+          <span className="app-header-sub">保存并回放</span>
         </div>
       </div>
       <div className="app-header-status">
         <span className={`status-pill${saveActive ? ' on' : ''}`}>
           保存 {saveActive ? '开' : '关'}
         </span>
-        <span className={`status-pill${mockActive ? ' on' : ''}`}>
-          Mock {mockActive ? '开' : '关'}
+        <span className={`status-pill${replayActive ? ' on' : ''}`}>
+          回放 {replayActive ? '开' : '关'}
         </span>
+        <Button type={capturesOpen ? 'primary' : 'default'} onClick={onToggleCaptures}>
+          已保存流量
+        </Button>
+        <Button
+          href="https://github.com/FJY111/whistle.replay#readme"
+          icon={<QuestionCircleOutlined />}
+          rel="noreferrer"
+          target="_blank"
+        >
+          帮助
+        </Button>
         <Button
           aria-label={dark ? '切换为浅色主题' : '切换为暗色主题'}
           icon={dark ? <SunOutlined /> : <MoonOutlined />}

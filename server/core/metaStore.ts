@@ -3,7 +3,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const INDEX_FILE = '.sake-index.json';
+/** 写在用户指定的保存目录里，不能和现网 whistle.sake 的 .sake-index.json 混用 */
+export const INDEX_FILE = '.replay-index.json';
 export const MAX_META = 500;
 
 export interface FileMeta {
@@ -11,6 +12,12 @@ export interface FileMeta {
   contentType: string;
   method?: string;
   time: number;
+  pathname?: string;
+  statusCode?: number;
+  requestHeaders?: Record<string, string>;
+  requestBody?: string;
+  requestBodyOmitted?: boolean;
+  responseHeaders?: Record<string, string>;
 }
 
 export type MetaMap = Record<string, FileMeta>;
@@ -28,15 +35,46 @@ export function readMeta(dir: string): MetaMap {
   }
 }
 
-export function recordMeta(dir: string, file: string, meta: FileMeta): void {
+/** 从展示索引去掉一个文件名，不改动其余记录 */
+export function forgetMeta(dir: string, file: string): void {
   try {
     const data = readMeta(dir);
-    data[file] = meta;
-    const keys = Object.keys(data);
-    keys.sort((a, b) => (data[b]?.time ?? 0) - (data[a]?.time ?? 0));
+    if (!(file in data)) {
+      return;
+    }
+    const next: MetaMap = {};
+    for (const [name, item] of Object.entries(data)) {
+      if (name !== file) {
+        next[name] = item;
+      }
+    }
+    fs.writeFileSync(path.join(dir, INDEX_FILE), JSON.stringify(next));
+  } catch {
+    // 索引删不掉时，响应文件仍会按调用方继续处理
+  }
+}
+
+export function recordMeta(
+  dir: string,
+  file: string,
+  meta: FileMeta,
+  removeFiles: readonly string[] = [],
+): void {
+  try {
+    const data = readMeta(dir);
+    const removed = new Set(removeFiles.filter((name) => name !== file));
+    const kept: MetaMap = {};
+    for (const [name, item] of Object.entries(data)) {
+      if (!removed.has(name)) {
+        kept[name] = item;
+      }
+    }
+    kept[file] = meta;
+    const keys = Object.keys(kept);
+    keys.sort((a, b) => (kept[b]?.time ?? 0) - (kept[a]?.time ?? 0));
     const next: MetaMap = {};
     for (const key of keys.slice(0, MAX_META)) {
-      const item = data[key];
+      const item = kept[key];
       if (item) {
         next[key] = item;
       }

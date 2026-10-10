@@ -1,21 +1,21 @@
 /** 跨规则的配置派生能力 */
 
-import { parseMockRules, parseSaveRules } from './sanitize';
+import { parseSaveRules } from './sanitize';
 
 import type { WhistleStorage } from '../types/whistle';
 
-/** 全部规则中配置过的目录集合（用于校验流式服务与文件读取 CGI 的 dir 参数） */
-export function getConfiguredDirs(storage: WhistleStorage): string[] {
-  const dirs = new Set<string>();
+/** 保存规则里配置过的目录（含暂时停用的规则），顺序与规则列表一致 */
+export function getSaveDirs(storage: WhistleStorage): string[] {
+  const dirs: string[] = [];
   for (const rule of parseSaveRules(storage.getProperty('saveRules'))) {
-    if (rule.dir) {
-      dirs.add(rule.dir);
+    if (rule.dir && !dirs.includes(rule.dir)) {
+      dirs.push(rule.dir);
     }
   }
-  for (const rule of parseMockRules(storage.getProperty('mockRules'))) {
-    if (rule.dir) {
-      dirs.add(rule.dir);
-    }
-  }
-  return [...dirs];
+  return dirs;
+}
+
+/** 文件读取与流式回放允许访问的目录 */
+export function getConfiguredDirs(storage: WhistleStorage): string[] {
+  return getSaveDirs(storage);
 }

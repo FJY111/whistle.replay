@@ -9,11 +9,22 @@ import {
 } from '@ant-design/icons';
 import { App as AntApp, Button, Modal, Segmented, Space } from 'antd';
 
+import type { CaptureMeta } from '../types';
+
 import { readFile, writeFile } from '../api';
 
 import './FilePreviewModal.css';
 
 const CodePreview = lazy(() => import('./CodePreview'));
+
+const formatHeaders = (headers: Record<string, string> | undefined): string => {
+  if (!headers) {
+    return '';
+  }
+  return Object.entries(headers)
+    .map(([name, value]) => `${name}: ${value}`)
+    .join('\n');
+};
 
 interface Props {
   dir: string;
@@ -44,6 +55,7 @@ export default function FilePreviewModal({
   const [savedContent, setSavedContent] = useState('');
   const [mode, setMode] = useState<EditorMode>(initialMode);
   const [saving, setSaving] = useState(false);
+  const [meta, setMeta] = useState<CaptureMeta | undefined>();
   const [winSize, setWinSize] = useState(() => ({
     w: window.innerWidth,
     h: window.innerHeight,
@@ -75,6 +87,7 @@ export default function FilePreviewModal({
           return;
         }
         const nextContent = data.content ?? '';
+        setMeta(data.meta);
         setPreview({
           file,
           content: nextContent,
@@ -234,6 +247,27 @@ export default function FilePreviewModal({
               ) : null}
             </div>
           </div>
+          {meta ? (
+            <dl className="capture-meta">
+              <dt>回放键</dt>
+              <dd>
+                {meta.method || '未知方法'} {meta.pathname || '未知路径'}
+                {meta.statusCode ? ` · ${String(meta.statusCode)}` : ''}
+              </dd>
+              <dt>来源 URL</dt>
+              <dd>{meta.url || '未记录'}</dd>
+              <dt>请求头</dt>
+              <dd>{formatHeaders(meta.requestHeaders) || '无'}</dd>
+              <dt>请求体</dt>
+              <dd>
+                {meta.requestBodyOmitted
+                  ? '未写入（二进制或超过大小上限）'
+                  : meta.requestBody || '空'}
+              </dd>
+              <dt>响应头</dt>
+              <dd>{formatHeaders(meta.responseHeaders) || '无'}</dd>
+            </dl>
+          ) : null}
           <Suspense fallback={<div className="preview-tip">编辑器加载中…</div>}>
             <CodePreview
               content={mode === 'edit' ? content : preview.content}

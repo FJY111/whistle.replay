@@ -1,0 +1,41 @@
+/** 把一条回放记录变成 whistle 动态规则 */
+
+import { withReplayHitHeader } from './headers';
+
+export interface BuiltRule {
+  rules: string;
+  values: Record<string, string>;
+}
+
+/** 一次性回放。路径含空白或 > 时把正文放进规则值 */
+export function buildFileReplay(
+  requestUrl: string,
+  filePath: string,
+  statusCode: number,
+  headers: Record<string, string>,
+  inlineBody: string | null,
+): BuiltRule {
+  const statusRule = ` statusCode://${String(statusCode)}`;
+  const headerJson = JSON.stringify(withReplayHitHeader(headers));
+  if (inlineBody !== null) {
+    return {
+      rules: `${requestUrl} file://{replayBody} resHeaders://{replayH}${statusRule}`,
+      values: { replayBody: inlineBody, replayH: headerJson },
+    };
+  }
+  return {
+    rules: `${requestUrl} file://<${filePath}> resHeaders://{replayH}${statusRule}`,
+    values: { replayH: headerJson },
+  };
+}
+
+export function buildSseReplay(
+  requestUrl: string,
+  streamUrl: string,
+  statusCode: number,
+): BuiltRule {
+  return {
+    rules: `${requestUrl} ${streamUrl} statusCode://${String(statusCode)}`,
+    values: {},
+  };
+}

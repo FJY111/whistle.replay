@@ -1,0 +1,41 @@
+.captures-page {
+  padding-top: 12px;
+}
+
+.captures-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.captures-head h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.captures-head p {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.captures-filter {
+  width: 240px;
+}
+
+.captures-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+@media (width <= 720px) {
+  .captures-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .captures-filter {
+    width: 100%;
+  }
+}

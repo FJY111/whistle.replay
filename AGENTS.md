@@ -2,7 +2,7 @@
 
 ## Project
 
-whistle 插件：按规则保存抓包响应并用文件 Mock 请求。Package manager is **bun** (`>=1.3.0` in `package.json` `engines`). Do not use npm, yarn, or pnpm.
+whistle 插件：按规则保存抓包响应，并按路径与方法自动回放。Package manager is **bun** (`>=1.3.0` in `package.json` `engines`). Do not use npm, yarn, or pnpm.
 
 Shared agent config lives in `.agents/`. `.claude`, `.codex`, and `.cursor` are symlinks to that folder — edit `.agents/` only.
 

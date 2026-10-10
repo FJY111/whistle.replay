@@ -118,7 +118,7 @@ export default function SavePanel({ initialActive, initialRules, onActiveChange 
     activePending.current = true;
     setActiveState(checked);
     onActiveChange(checked);
-    setActive(checked)
+    setActive(checked, 'save')
       .then(() => {
         activePending.current = false;
         message[checked ? 'success' : 'info'](checked ? '已启用自动保存' : '已关闭自动保存');
@@ -180,8 +180,8 @@ export default function SavePanel({ initialActive, initialRules, onActiveChange 
         </span>
       </div>
       <span className="panel-desc">
-        命中规则的响应体会写入对应目录，并记下状态码、响应头和请求侧信息。之后相同路径和 HTTP
-        方法的请求自动回放最早的一份。URL 匹配仍是子串或正则，作用在完整 URL 上。
+        命中规则的响应体会写入对应目录，并记下状态码、响应头和请求侧信息。是否回放由右侧「需要回放」开关和白名单决定。URL
+        匹配仍是子串或正则，作用在完整 URL 上。
       </span>
 
       {rules.length > 0 ? (

@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test';
 
 import {
   isSafeFileName,
-  parseExcludeRules,
+  parseReplayRules,
   parseSaveRules,
-  sanitizeExcludeRules,
+  sanitizeReplayRules,
   sanitizeSaveRules,
 } from '../server/core/sanitize';
 
@@ -75,8 +75,8 @@ test('sanitizeSaveRules: id 去重、数量封顶、maxBodyKB 取整截断', () 
   expect(sanitizeSaveRules(new Array(300).fill({ pattern: '/x' }))).toHaveLength(200);
 });
 
-test('sanitizeExcludeRules: 只保留路径和方法，丢弃非法 pattern', () => {
-  const rules = sanitizeExcludeRules([
+test('sanitizeReplayRules: 只保留路径和方法，丢弃非法 pattern', () => {
+  const rules = sanitizeReplayRules([
     { id: 'e1', enabled: true, pattern: '/health', methods: ['get'] },
     { pattern: '/[/' },
     { pattern: '' },
@@ -84,7 +84,7 @@ test('sanitizeExcludeRules: 只保留路径和方法，丢弃非法 pattern', ()
   expect(rules).toHaveLength(1);
   expect(rules[0]).toEqual({
     id: 'e1',
-    name: '排除 1',
+    name: '回放 1',
     enabled: true,
     pattern: '/health',
     methods: ['GET'],
@@ -94,9 +94,7 @@ test('sanitizeExcludeRules: 只保留路径和方法，丢弃非法 pattern', ()
 test('parse: 从 storage 字符串解析，坏数据返回空列表', () => {
   expect(parseSaveRules('not-json')).toHaveLength(0);
   expect(parseSaveRules(null)).toHaveLength(0);
-  expect(parseExcludeRules(undefined)).toHaveLength(0);
+  expect(parseReplayRules(undefined)).toHaveLength(0);
   expect(parseSaveRules(JSON.stringify([{ pattern: '/a' }]))).toHaveLength(1);
-  expect(parseExcludeRules(JSON.stringify([{ pattern: '/health', enabled: true }]))).toHaveLength(
-    1,
-  );
+  expect(parseReplayRules(JSON.stringify([{ pattern: '/health', enabled: true }]))).toHaveLength(1);
 });

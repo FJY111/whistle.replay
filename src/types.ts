@@ -1,6 +1,6 @@
-import type { CaptureMeta, ExcludeRule, SaveRule } from '../server/core/model.ts';
+import type { CaptureMeta, ReplayRule, SaveRule } from '../server/core/model.ts';
 
-export type { CaptureMeta, ExcludeRule, SaveRule, SaveType } from '../server/core/model.ts';
+export type { CaptureMeta, ReplayRule, SaveRule, SaveType } from '../server/core/model.ts';
 export { HTTP_METHODS } from '../server/core/model.ts';
 
 export interface Settings {
@@ -8,7 +8,8 @@ export interface Settings {
   em?: string;
   saveActive: boolean;
   saveRules: SaveRule[];
-  excludeRules: ExcludeRule[];
+  replayActive: boolean;
+  replayRules: ReplayRule[];
 }
 
 export interface FileInfo {

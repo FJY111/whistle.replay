@@ -1,26 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { PlusOutlined, SearchOutlined, StopOutlined } from '@ant-design/icons';
-import { App as AntApp, Button, Input, Tag } from 'antd';
+import { PlayCircleOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { App as AntApp, Button, Input, Switch, Tag } from 'antd';
 
 import DirtyBar from './DirtyBar';
 import EmptyState from './EmptyState';
-import ExcludeRuleEditor from './ExcludeRuleEditor';
+import ReplayRuleEditor from './ReplayRuleEditor';
 import RuleCard from './RuleCard';
 
-import type { ExcludeRule } from '../types';
+import type { ReplayRule } from '../types';
 
-import { setExcludeRules } from '../api';
+import { setActive, setReplayRules } from '../api';
 import { genId } from '../types';
 import { matchesQuery } from '../utils';
 
 import './Panel.css';
 
 interface Props {
-  initialRules: ExcludeRule[];
+  initialActive: boolean;
+  initialRules: ReplayRule[];
+  onActiveChange: (active: boolean) => void;
 }
 
-const newRule = (): ExcludeRule => ({
+const newRule = (): ReplayRule => ({
   id: genId(),
   name: '',
   enabled: true,
@@ -28,21 +30,23 @@ const newRule = (): ExcludeRule => ({
   methods: [],
 });
 
-export default function ExcludePanel({ initialRules }: Props) {
+export default function ReplayPanel({ initialActive, initialRules, onActiveChange }: Props) {
   const { message } = AntApp.useApp();
-  const [rules, setRules] = useState<ExcludeRule[]>(initialRules);
+  const [active, setActiveState] = useState(initialActive);
+  const [rules, setRules] = useState<ReplayRule[]>(initialRules);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState<ExcludeRule | null>(null);
+  const [editing, setEditing] = useState<ReplayRule | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState('');
+  const activePending = useRef(false);
 
-  const mutate = (next: ExcludeRule[]) => {
+  const mutate = (next: ReplayRule[]) => {
     setRules(next);
     setDirty(true);
   };
 
-  const upsert = (rule: ExcludeRule) => {
+  const upsert = (rule: ReplayRule) => {
     mutate(
       rules.some((item) => item.id === rule.id)
         ? rules.map((item) => (item.id === rule.id ? rule : item))
@@ -64,7 +68,7 @@ export default function ExcludePanel({ initialRules }: Props) {
     mutate(next);
   };
 
-  const duplicateRule = (rule: ExcludeRule, index: number) => {
+  const duplicateRule = (rule: ReplayRule, index: number) => {
     const copy = {
       ...rule,
       id: genId(),
@@ -89,16 +93,36 @@ export default function ExcludePanel({ initialRules }: Props) {
     });
   };
 
+  function handleToggleActive(checked: boolean) {
+    if (activePending.current) {
+      return;
+    }
+    activePending.current = true;
+    setActiveState(checked);
+    onActiveChange(checked);
+    setActive(checked, 'replay')
+      .then(() => {
+        activePending.current = false;
+        message[checked ? 'success' : 'info'](checked ? '已启用回放' : '已关闭回放');
+      })
+      .catch(() => {
+        activePending.current = false;
+        setActiveState(!checked);
+        onActiveChange(!checked);
+        message.error('提交失败，请稍后重试');
+      });
+  }
+
   function handleSave() {
     setSaving(true);
-    setExcludeRules(rules)
+    setReplayRules(rules)
       .then((data) => {
         if (data.ec) {
           message.error(data.em ?? '保存失败');
           return;
         }
         setDirty(false);
-        message.success('排除规则已更新');
+        message.success('回放规则已更新');
       })
       .catch(() => {
         message.error('提交失败，请稍后重试');
@@ -122,18 +146,29 @@ export default function ExcludePanel({ initialRules }: Props) {
   });
 
   const visibleRules = rules.filter((rule) => matchesQuery(query, rule.name, rule.pattern));
+  const hasEnabled = rules.some((rule) => rule.enabled);
+  const statusText = !active
+    ? '回放已关闭，请求继续访问真实服务器。'
+    : hasEnabled
+      ? '只有命中下面启用规则的请求才会回放。'
+      : '开关已开，但没有启用的白名单，请求继续访问真实服务器。';
 
   return (
     <section className="panel">
       <div className="panel-head">
         <div className="panel-title">
-          <StopOutlined className="panel-icon" />
-          <span>排除回放</span>
+          <PlayCircleOutlined className="panel-icon" />
+          <span>需要回放</span>
         </div>
+        <span className="panel-switch">
+          启用
+          <Switch checked={active} onChange={handleToggleActive} />
+        </span>
       </div>
       <span className="panel-desc">
-        已保存的响应会按路径和 HTTP
-        方法自动回放最早的一份。命中下面任一启用规则的请求不回放，继续访问真实服务器。
+        {statusText}
+        白名单只和路径（pathname）比较，支持子串或 /正则/i，并可限制 HTTP
+        方法。未命中则访问真实服务器。
       </span>
 
       {rules.length > 0 ? (
@@ -171,8 +206,12 @@ export default function ExcludePanel({ initialRules }: Props) {
 
       {rules.length === 0 ? (
         <EmptyState
-          steps={['添加一条排除规则，只填写路径', '需要时再限制 HTTP 方法', '点击更新配置后生效']}
-          title="暂无排除规则"
+          steps={[
+            '打开上方回放开关',
+            '添加一条白名单，只填写路径',
+            '点击更新配置后，命中的请求才会回放',
+          ]}
+          title="暂无回放规则"
         />
       ) : visibleRules.length === 0 ? (
         <EmptyState steps={['清空筛选后再试']} title="没有符合筛选的规则" />
@@ -189,7 +228,7 @@ export default function ExcludePanel({ initialRules }: Props) {
                 moveDownDisabled={index === rules.length - 1}
                 moveUpDisabled={index === 0}
                 pattern={rule.pattern}
-                summary={<span>命中后不回放，继续访问真实服务器</span>}
+                summary={<span>命中后才回放最早的一份</span>}
                 tags={
                   <>
                     {rule.methods.length ? (
@@ -253,13 +292,13 @@ export default function ExcludePanel({ initialRules }: Props) {
           setEditing(newRule());
         }}
       >
-        添加排除规则
+        添加回放规则
       </Button>
 
       {dirty ? <DirtyBar saving={saving} onSave={handleSave} /> : null}
 
       {editing ? (
-        <ExcludeRuleEditor
+        <ReplayRuleEditor
           rule={editing}
           onCancel={() => {
             setEditing(null);

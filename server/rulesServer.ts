@@ -5,13 +5,13 @@ import path from 'node:path';
 import type { WhistlePluginContext, WhistleRequest, WhistleServer } from './types/whistle';
 
 import { normalizeStatusCode } from './core/capture';
-import { isReplayExcluded } from './core/excludeMatch';
 import { captureHeaders } from './core/headers';
 import { getStreamPort, isStreamReq, markReplayed, setStreamPort } from './core/mockMark';
 import { firstText, pathnameOf, replayKey } from './core/pathname';
+import { isReplayActive, shouldReplay } from './core/replayAllow';
 import { buildFileReplay, buildSseReplay } from './core/replayRule';
 import { findEarliestReplay } from './core/replayStore';
-import { isSafeFileName, parseExcludeRules } from './core/sanitize';
+import { isSafeFileName, parseReplayRules } from './core/sanitize';
 import { getConfiguredDirs, getSaveDirs } from './core/settings';
 import { splitSseEvents } from './sseStream';
 
@@ -104,8 +104,8 @@ function startStreamServer(storage: WhistlePluginContext['storage']): void {
 }
 
 /**
- * 动态规则：按 pathname + 方法自动回放最早的保存结果。
- * 命中排除规则、或没有可回放文件时不注入规则，请求继续走真实服务器。
+ * 动态规则：回放开关打开且 pathname 命中白名单时，按 pathname + 方法回放最早的保存结果。
+ * 开关关闭、未命中白名单或没有可回放文件时不注入规则，请求继续走真实服务器。
  */
 function rulesServer(server: WhistleServer, { storage }: WhistlePluginContext): void {
   startStreamServer(storage);
@@ -124,6 +124,10 @@ function rulesServer(server: WhistleServer, { storage }: WhistlePluginContext): 
         done();
         return;
       }
+      if (!isReplayActive(storage.getProperty('replayActive'))) {
+        done();
+        return;
+      }
       const pathname = pathnameOf(url);
       const key = pathname && method ? replayKey(method, pathname) : null;
       if (!pathname || !key) {
@@ -131,10 +135,11 @@ function rulesServer(server: WhistleServer, { storage }: WhistlePluginContext): 
         return;
       }
       if (
-        isReplayExcluded(
+        !shouldReplay(
+          true,
           pathname,
           method ?? '',
-          parseExcludeRules(storage.getProperty('excludeRules')),
+          parseReplayRules(storage.getProperty('replayRules')),
         )
       ) {
         done();

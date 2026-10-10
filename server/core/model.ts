@@ -22,8 +22,8 @@ export interface SaveRule {
   prettyJson: boolean;
 }
 
-/** 命中后不回放。pattern 只和 pathname 比较 */
-export interface ExcludeRule {
+/** 需要回放的白名单。pattern 只和 pathname 比较，命中才回放 */
+export interface ReplayRule {
   id: string;
   name: string;
   enabled: boolean;

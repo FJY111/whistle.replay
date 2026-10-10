@@ -7,11 +7,12 @@ import './AppHeader.css';
 
 interface Props {
   saveActive: boolean;
+  replayActive: boolean;
   dark: boolean;
   onToggleDark: () => void;
 }
 
-export default function AppHeader({ saveActive, dark, onToggleDark }: Props) {
+export default function AppHeader({ saveActive, replayActive, dark, onToggleDark }: Props) {
   return (
     <header className="app-header">
       <div className="app-header-brand">
@@ -25,7 +26,9 @@ export default function AppHeader({ saveActive, dark, onToggleDark }: Props) {
         <span className={`status-pill${saveActive ? ' on' : ''}`}>
           保存 {saveActive ? '开' : '关'}
         </span>
-        <span className="status-pill on">回放 自动</span>
+        <span className={`status-pill${replayActive ? ' on' : ''}`}>
+          回放 {replayActive ? '开' : '关'}
+        </span>
         <Button
           aria-label={dark ? '切换为浅色主题' : '切换为暗色主题'}
           icon={dark ? <SunOutlined /> : <MoonOutlined />}

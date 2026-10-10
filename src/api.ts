@@ -1,7 +1,7 @@
 import type {
-  ExcludeRule,
   ListFilesResult,
   ReadFileResult,
+  ReplayRule,
   RulesResult,
   SaveRule,
   Settings,
@@ -70,14 +70,17 @@ async function postForm<T>(url: string, data: Record<string, string>): Promise<T
   return res.json() as Promise<T>;
 }
 
-export function setActive(active: boolean): Promise<{ ec: number; active: boolean }> {
-  return postForm('cgi-bin/set-active', { active: active ? '1' : '0', type: 'save' });
+export function setActive(
+  active: boolean,
+  type: 'save' | 'replay',
+): Promise<{ ec: number; active: boolean }> {
+  return postForm('cgi-bin/set-active', { active: active ? '1' : '0', type });
 }
 
 export function setSaveRules(rules: SaveRule[]): Promise<RulesResult> {
   return postForm('cgi-bin/set-save-rules', { rules: JSON.stringify(rules) });
 }
 
-export function setExcludeRules(rules: ExcludeRule[]): Promise<RulesResult> {
-  return postForm('cgi-bin/set-exclude-rules', { rules: JSON.stringify(rules) });
+export function setReplayRules(rules: ReplayRule[]): Promise<RulesResult> {
+  return postForm('cgi-bin/set-replay-rules', { rules: JSON.stringify(rules) });
 }

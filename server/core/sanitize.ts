@@ -2,7 +2,6 @@
 
 import {
   DEFAULT_MAX_BODY_KB,
-  type ExcludeRule,
   HTTP_METHODS,
   MAX_BODY_KB_LIMIT,
   MAX_DIR_LEN,
@@ -10,6 +9,7 @@ import {
   MAX_NAME_LEN,
   MAX_PATTERN_LEN,
   MAX_RULES,
+  type ReplayRule,
   SAVE_TYPES,
   type SaveRule,
   type SaveType,
@@ -127,12 +127,12 @@ export function sanitizeSaveRules(input: unknown): SaveRule[] {
   return result;
 }
 
-export function sanitizeExcludeRules(input: unknown): ExcludeRule[] {
+export function sanitizeReplayRules(input: unknown): ReplayRule[] {
   if (!Array.isArray(input)) {
     return [];
   }
   const seen = new Set<string>();
-  const result: ExcludeRule[] = [];
+  const result: ReplayRule[] = [];
   for (const item of input) {
     if (result.length >= MAX_RULES) {
       break;
@@ -152,7 +152,7 @@ export function sanitizeExcludeRules(input: unknown): ExcludeRule[] {
     seen.add(id);
     result.push({
       id,
-      name: toName(raw.name, `排除 ${String(result.length + 1)}`),
+      name: toName(raw.name, `回放 ${String(result.length + 1)}`),
       enabled: raw.enabled === true,
       pattern,
       methods: toMethods(raw.methods),
@@ -174,5 +174,5 @@ const parseRules = <T>(raw: unknown, sanitize: (input: unknown) => T[]): T[] => 
 
 /** 从 storage 中的 JSON 字符串解析规则列表 */
 export const parseSaveRules = (raw: unknown): SaveRule[] => parseRules(raw, sanitizeSaveRules);
-export const parseExcludeRules = (raw: unknown): ExcludeRule[] =>
-  parseRules(raw, sanitizeExcludeRules);
+export const parseReplayRules = (raw: unknown): ReplayRule[] =>
+  parseRules(raw, sanitizeReplayRules);

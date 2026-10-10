@@ -1,13 +1,13 @@
 import type { Context } from 'koa';
 
-import { sanitizeExcludeRules } from '../../core/sanitize';
+import { sanitizeReplayRules } from '../../core/sanitize';
 
 interface RulesBody {
   rules?: unknown;
 }
 
-/** 排除规则：命中后不回放（JSON 字符串提交，服务端统一清洗） */
-function setExcludeRules(ctx: Context): void {
+/** 需要回放的白名单（JSON 字符串提交，服务端统一清洗） */
+function setReplayRules(ctx: Context): void {
   const body = ctx.request.body as RulesBody;
   let parsed: unknown = [];
   if (typeof body.rules === 'string' && body.rules) {
@@ -18,9 +18,9 @@ function setExcludeRules(ctx: Context): void {
       return;
     }
   }
-  const rules = sanitizeExcludeRules(parsed);
-  ctx.req.localStorage.setProperty('excludeRules', JSON.stringify(rules));
+  const rules = sanitizeReplayRules(parsed);
+  ctx.req.localStorage.setProperty('replayRules', JSON.stringify(rules));
   ctx.body = { ec: 0, rules };
 }
 
-export = setExcludeRules;
+export = setReplayRules;

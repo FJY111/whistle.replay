@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import type { ExcludeRule, ReplayEntry } from '../server/core/model';
+import type { ReplayEntry, ReplayRule } from '../server/core/model';
 
 import { fitRequestBody, normalizeStatusCode, readBody } from '../server/core/capture';
-import { isReplayExcluded } from '../server/core/excludeMatch';
 import { captureHeaders, replayResponseHeaders } from '../server/core/headers';
 import { normalizeMethod, pathnameOf, replayKey } from '../server/core/pathname';
+import { isReplayActive, shouldReplay } from '../server/core/replayAllow';
 import { mergeReplayEntry, selectReplay } from '../server/core/replayCatalog';
 import { buildFileReplay, buildSseReplay } from '../server/core/replayRule';
 
@@ -88,21 +88,24 @@ test('selectReplay: 全局最早且文件仍在；最早的文件缺失则不改
   expect(tie?.entry.file).toBe('first.json');
 });
 
-test('isReplayExcluded: 只比较 pathname，命中任一启用规则', () => {
-  const rules: ExcludeRule[] = [
-    { id: '1', name: '健康检查', enabled: true, pattern: '/health', methods: [] },
-    { id: '2', name: '停用', enabled: false, pattern: '/api/items', methods: [] },
-    { id: '3', name: '只排除 POST', enabled: true, pattern: '/api/items', methods: ['POST'] },
+test('shouldReplay: 开关关闭一律不回放；开启时只有命中白名单才回放', () => {
+  const rules: ReplayRule[] = [
+    { id: '1', name: '商品', enabled: true, pattern: '/api/items', methods: ['GET'] },
+    { id: '2', name: '停用', enabled: false, pattern: '/health', methods: [] },
   ];
-  expect(isReplayExcluded('/health', 'GET', rules)).toBe(true);
-  expect(isReplayExcluded('/api/items', 'GET', rules)).toBe(false);
-  expect(isReplayExcluded('/api/items', 'POST', rules)).toBe(true);
-  expect(isReplayExcluded('/status', 'GET', rules)).toBe(false);
-  const pathname = pathnameOf('https://example.com/health?ready=1');
-  expect(pathname).toBe('/health');
+  expect(isReplayActive(undefined)).toBe(true);
+  expect(isReplayActive(false)).toBe(false);
+  expect(shouldReplay(false, '/api/items', 'GET', rules)).toBe(false);
+  expect(shouldReplay(true, '/status', 'GET', rules)).toBe(false);
+  expect(shouldReplay(true, '/api/items', 'POST', rules)).toBe(false);
+  expect(shouldReplay(true, '/api/items', 'GET', rules)).toBe(true);
+  expect(shouldReplay(true, '/health', 'GET', rules)).toBe(false);
+  const pathname = pathnameOf('https://example.com/api/items?page=1');
+  expect(pathname).toBe('/api/items');
+  expect(shouldReplay(true, pathname ?? '', 'GET', rules)).toBe(true);
   expect(
-    isReplayExcluded(pathname ?? '', 'GET', [
-      { id: '4', name: '主机', enabled: true, pattern: 'example.com', methods: [] },
+    shouldReplay(true, pathname ?? '', 'GET', [
+      { id: '3', name: '主机', enabled: true, pattern: 'example.com', methods: [] },
     ]),
   ).toBe(false);
 });

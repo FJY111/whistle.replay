@@ -4,26 +4,26 @@ import { Button, Drawer, Input, Select } from 'antd';
 
 import Field from './Field';
 
-import { type ExcludeRule, HTTP_METHODS } from '../types';
+import { HTTP_METHODS, type ReplayRule } from '../types';
 import { isValidPattern } from '../utils';
 
 import './RuleEditor.css';
 
 interface Props {
-  rule: ExcludeRule;
+  rule: ReplayRule;
   onCancel: () => void;
-  onOk: (rule: ExcludeRule) => void;
+  onOk: (rule: ReplayRule) => void;
 }
 
 interface Errors {
   pattern?: string;
 }
 
-export default function ExcludeRuleEditor({ rule, onCancel, onOk }: Props) {
-  const [draft, setDraft] = useState<ExcludeRule>(() => ({ ...rule, methods: [...rule.methods] }));
+export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
+  const [draft, setDraft] = useState<ReplayRule>(() => ({ ...rule, methods: [...rule.methods] }));
   const [errors, setErrors] = useState<Errors>({});
 
-  const patch = (part: Partial<ExcludeRule>) => {
+  const patch = (part: Partial<ReplayRule>) => {
     setDraft((prev) => ({ ...prev, ...part }));
   };
 
@@ -55,13 +55,13 @@ export default function ExcludeRuleEditor({ rule, onCancel, onOk }: Props) {
       }
       open
       size={420}
-      title="编辑排除规则"
+      title="编辑回放规则"
       onClose={onCancel}
     >
       <Field extra="留空时以匹配规则作为名称" label="名称">
         <Input
           maxLength={64}
-          placeholder="例如：健康检查"
+          placeholder="例如：商品接口"
           value={draft.name}
           onChange={(event) => {
             patch({ name: event.target.value });
@@ -71,14 +71,14 @@ export default function ExcludeRuleEditor({ rule, onCancel, onOk }: Props) {
 
       <Field
         error={errors.pattern}
-        extra="只和路径（pathname）比较。子串如 /api/health，或正则如 /^\\/api\\/health$/。不比较协议、主机和 query。"
+        extra="只和路径（pathname）比较。子串如 /api/items，或正则如 /^\\/api\\/items$/。不比较协议、主机和 query。命中才回放。"
         label="路径匹配"
         required
       >
         <Input
           className="mono"
           maxLength={512}
-          placeholder="/api/health 或 /正则/i"
+          placeholder="/api/items 或 /正则/i"
           value={draft.pattern}
           onChange={(event) => {
             patch({ pattern: event.target.value });
@@ -86,7 +86,7 @@ export default function ExcludeRuleEditor({ rule, onCancel, onOk }: Props) {
         />
       </Field>
 
-      <Field extra="不选表示所有方法都不回放" label="HTTP 方法">
+      <Field extra="不选表示命中该路径的全部方法都回放" label="HTTP 方法">
         <Select
           allowClear
           mode="multiple"

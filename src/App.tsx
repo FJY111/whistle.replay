@@ -7,7 +7,7 @@ import type { Settings } from './types';
 
 import { getSettings } from './api';
 import AppHeader from './components/AppHeader';
-import ExcludePanel from './components/ExcludePanel';
+import ReplayPanel from './components/ReplayPanel';
 import SavePanel from './components/SavePanel';
 import { getInitialDark, persistDark, ThemeContext } from './theme';
 
@@ -19,6 +19,7 @@ export default function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [dark, setDark] = useState(getInitialDark);
   const [saveActive, setSaveActive] = useState(false);
+  const [replayActive, setReplayActive] = useState(true);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -37,6 +38,7 @@ export default function App() {
           }
           setSettings(data);
           setSaveActive(data.saveActive);
+          setReplayActive(data.replayActive);
         })
         .catch(() => {
           if (alive) {
@@ -70,6 +72,7 @@ export default function App() {
             <div className="container">
               <AppHeader
                 dark={dark}
+                replayActive={replayActive}
                 saveActive={saveActive}
                 onToggleDark={() => {
                   setDark((value) => !value);
@@ -81,7 +84,11 @@ export default function App() {
                   initialRules={settings.saveRules}
                   onActiveChange={setSaveActive}
                 />
-                <ExcludePanel initialRules={settings.excludeRules} />
+                <ReplayPanel
+                  initialActive={settings.replayActive}
+                  initialRules={settings.replayRules}
+                  onActiveChange={setReplayActive}
+                />
               </main>
             </div>
           ) : (

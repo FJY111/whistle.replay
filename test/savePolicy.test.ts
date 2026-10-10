@@ -14,11 +14,26 @@ const rule = {
   statusCodes: '200',
 };
 
-test('acceptResponseBody: 空字符串要保存，二进制不保存', () => {
-  expect(acceptResponseBody('', false)).toBe('');
+test('acceptResponseBody: 空字符串不保存，二进制不保存', () => {
+  expect(acceptResponseBody('', false)).toBeNull();
+  expect(acceptResponseBody(' ', false)).toBe(' ');
   expect(acceptResponseBody('{}', false)).toBe('{}');
   expect(acceptResponseBody('', true)).toBeNull();
   expect(acceptResponseBody('png', true)).toBeNull();
+});
+
+test('空响应即使命中规则或耗时超过 1 秒也不保存', () => {
+  const hit = {
+    rule,
+    url: 'https://shop.example/api/items',
+    method: 'GET',
+    saveType: 'json',
+    statusCode: 200,
+    slow: false,
+  };
+  expect(shouldSaveForRule(hit)).toBe(true);
+  expect(shouldSaveForRule({ ...hit, slow: true, url: 'https://other.example/health' })).toBe(true);
+  expect(acceptResponseBody('', false)).toBeNull();
 });
 
 test('responseDurationMs: 从发出请求到收齐响应，大于 1000ms 才算慢', () => {

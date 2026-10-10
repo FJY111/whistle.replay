@@ -152,6 +152,9 @@ function resStatsServer(server: WhistleServer, { storage, config }: WhistlePlugi
       const savedAt = Date.now();
 
       const apply = (body: string): void => {
+        if (body.length === 0) {
+          return;
+        }
         for (const rule of rules) {
           if (
             !shouldSaveForRule({
@@ -196,12 +199,21 @@ function resStatsServer(server: WhistleServer, { storage, config }: WhistlePlugi
       };
 
       const response = readBody(s.resBody ?? s.res?.body);
-      const text = acceptResponseBody(response.text, response.binary);
-      if (text == null) {
+      if (response.binary) {
         return;
       }
-      if ((saveType === 'sse' || s.isSse || s.isCse) && text === '') {
-        collectSseBody(req, s, apply);
+      if ((saveType === 'sse' || s.isSse || s.isCse) && response.text.length === 0) {
+        collectSseBody(req, s, (body) => {
+          const text = acceptResponseBody(body, false);
+          if (text == null) {
+            return;
+          }
+          apply(text);
+        });
+        return;
+      }
+      const text = acceptResponseBody(response.text, false);
+      if (text == null) {
         return;
       }
       apply(text);

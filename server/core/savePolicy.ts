@@ -30,9 +30,9 @@ export function isSlowSave(durationMs: number | null): boolean {
   return durationMs != null && durationMs > SLOW_SAVE_MS;
 }
 
-/** 二进制不保存。空字符串要保存 */
+/** 空响应和二进制不保存。仅空白字符仍算非空 */
 export function acceptResponseBody(text: string, binary: boolean): string | null {
-  if (binary) {
+  if (binary || text.length === 0) {
     return null;
   }
   return text;

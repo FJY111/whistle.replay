@@ -11,11 +11,10 @@ import type {
 
 import { fitRequestBody, normalizeStatusCode, readBody } from './core/capture';
 import { captureHeaders, replayResponseHeaders } from './core/headers';
-import { recordMeta } from './core/metaStore';
 import { consumeReplayed, isStreamReq } from './core/mockMark';
 import { firstText, normalizeMethod, pathnameOf, replayKey } from './core/pathname';
 import { testMethod, testPattern } from './core/pattern';
-import { recordReplay } from './core/replayStore';
+import { commitSavedCapture } from './core/replayStore';
 import { parseSaveRules } from './core/sanitize';
 import { testStatusCode } from './core/statusCodes';
 import { joinSseFrames } from './sseStream';
@@ -27,10 +26,7 @@ const requestUrlOf = (req: WhistleRequest): string =>
 const saveBody = (dir: string, fileName: string, body: string, meta: CaptureMeta): void => {
   const filePath = path.resolve(dir, fileName);
   const record = (): void => {
-    recordMeta(dir, fileName, meta);
-    if (meta.pathname && meta.method) {
-      recordReplay(dir, { ...meta, file: fileName });
-    }
+    commitSavedCapture(dir, fileName, meta);
   };
   fs.writeFile(filePath, body, (err) => {
     if (err) {

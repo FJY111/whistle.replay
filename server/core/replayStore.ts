@@ -1,11 +1,12 @@
-/** 每个保存目录一份回放目录：按匹配键保留最早记录，不按 500 条裁剪 */
+/** 每个保存目录一份回放目录：按匹配键保留最新一条，不按 500 条裁剪 */
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { ReplayEntry } from './model';
+import type { CaptureMeta, ReplayEntry } from './model';
 
 import { normalizeStatusCode } from './capture';
+import { readMeta, recordMeta } from './metaStore';
 import { replayKey } from './pathname';
 import { mergeReplayEntry, type ReplayMap, selectReplay } from './replayCatalog';
 import { isSafeFileName } from './sanitize';
@@ -94,12 +95,7 @@ export function recordReplay(dir: string, entry: ReplayEntry): void {
     return;
   }
   const current = readReplay(dir);
-  const existing = current[key];
-  const existingFileExists = existing ? fs.existsSync(path.join(dir, existing.file)) : false;
-  const next = mergeReplayEntry(current, entry, existingFileExists);
-  if (next === current) {
-    return;
-  }
+  const next = { ...current, [key]: entry };
   try {
     const filePath = path.join(dir, REPLAY_FILE);
     fs.writeFileSync(filePath, JSON.stringify(next));
@@ -115,8 +111,43 @@ export interface LocatedReplay {
   entry: ReplayEntry;
 }
 
-/** 在多个保存目录中找该键最早且文件仍在的记录 */
-export function findEarliestReplay(
+/** 同一键再次保存：改写回放目录和展示索引，并删掉该键的旧响应文件 */
+export function commitSavedCapture(dir: string, fileName: string, meta: CaptureMeta): void {
+  if (!isSafeFileName(fileName)) {
+    return;
+  }
+  const key = meta.pathname && meta.method ? replayKey(meta.method, meta.pathname) : null;
+  const previous = key ? readReplay(dir)[key] : undefined;
+  const drop = new Set<string>();
+  if (previous && previous.file !== fileName && isSafeFileName(previous.file)) {
+    drop.add(previous.file);
+  }
+  if (key) {
+    for (const [name, item] of Object.entries(readMeta(dir))) {
+      if (name === fileName || !isSafeFileName(name) || !item.method || !item.pathname) {
+        continue;
+      }
+      if (replayKey(item.method, item.pathname) === key) {
+        drop.add(name);
+      }
+    }
+  }
+  const entry: ReplayEntry = { ...meta, file: fileName };
+  if (key) {
+    recordReplay(dir, entry);
+  }
+  recordMeta(dir, fileName, meta, [...drop]);
+  for (const name of drop) {
+    try {
+      fs.unlinkSync(path.join(dir, name));
+    } catch {
+      // 旧文件已经不在
+    }
+  }
+}
+
+/** 在多个保存目录中找该键最新且文件仍在的记录 */
+export function findLatestReplay(
   dirs: readonly string[],
   method: string,
   pathname: string,
@@ -146,7 +177,7 @@ export function findEarliestReplay(
   return { dir: selected.dir, entry: selected.entry };
 }
 
-/** 按文件名找回记录：展示索引被裁掉后，最早一份仍在回放目录里 */
+/** 按文件名找回记录：展示索引被裁掉后，最新一条仍在回放目录里 */
 export function findReplayByFile(dir: string, file: string): ReplayEntry | null {
   if (!isSafeFileName(file)) {
     return null;

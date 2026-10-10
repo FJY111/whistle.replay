@@ -244,8 +244,8 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
                 summary={
                   <span>
                     {rule.host && rule.pattern
-                      ? '域名和路径都命中后才回放最早的一份'
-                      : '命中后才回放最早的一份'}
+                      ? '域名和路径都命中后才回放最新的一条'
+                      : '命中后才回放最新的一条'}
                   </span>
                 }
                 tags={

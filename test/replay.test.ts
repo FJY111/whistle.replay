@@ -49,18 +49,15 @@ test('replayKey: 方法忽略大小写，键是方法加路径', () => {
   expect(replayKey('GET', 'api/items')).toBeNull();
 });
 
-test('mergeReplayEntry: 同一键保留更早的一份，且不按条数裁剪', () => {
+test('mergeReplayEntry: 同一键保留更新的一份，且不按条数裁剪', () => {
   const first = entry({ file: 'a.json', time: 10 });
   const later = entry({ file: 'b.json', time: 20 });
   const merged = mergeReplayEntry({}, first, false);
-  expect(mergeReplayEntry(merged, later, true)).toBe(merged);
-  expect(merged['GET /api/items']?.file).toBe('a.json');
+  const overwritten = mergeReplayEntry(merged, later, true);
+  expect(overwritten['GET /api/items']?.file).toBe('b.json');
+  expect(mergeReplayEntry(overwritten, first, true)['GET /api/items']?.file).toBe('b.json');
 
-  const replaced = mergeReplayEntry(
-    merged,
-    entry({ file: 'c.json', time: 5, pathname: '/api/items' }),
-    false,
-  );
+  const replaced = mergeReplayEntry(overwritten, entry({ file: 'c.json', time: 5 }), false);
   expect(replaced['GET /api/items']?.file).toBe('c.json');
 
   let map = {};
@@ -74,21 +71,27 @@ test('mergeReplayEntry: 同一键保留更早的一份，且不按条数裁剪',
   expect(Object.keys(map)).toHaveLength(600);
 });
 
-test('selectReplay: 全局最早且文件仍在；最早的文件缺失则不改用更晚的', () => {
+test('selectReplay: 选最新且文件仍在的一条；最新文件缺失则用下一条仍在的', () => {
   const early = entry({ file: 'early.json', time: 1 });
   const late = entry({ file: 'late.json', time: 9 });
   const picked = selectReplay([
     { order: 1, dir: '/b', entry: late, fileExists: true },
     { order: 0, dir: '/a', entry: early, fileExists: true },
   ]);
-  expect(picked?.dir).toBe('/a');
-  expect(picked?.entry.file).toBe('early.json');
+  expect(picked?.dir).toBe('/b');
+  expect(picked?.entry.file).toBe('late.json');
 
   const missing = selectReplay([
-    { order: 0, dir: '/a', entry: early, fileExists: false },
-    { order: 1, dir: '/b', entry: late, fileExists: true },
+    { order: 1, dir: '/b', entry: late, fileExists: false },
+    { order: 0, dir: '/a', entry: early, fileExists: true },
   ]);
-  expect(missing).toBeNull();
+  expect(missing?.entry.file).toBe('early.json');
+
+  const none = selectReplay([
+    { order: 0, dir: '/a', entry: early, fileExists: false },
+    { order: 1, dir: '/b', entry: late, fileExists: false },
+  ]);
+  expect(none).toBeNull();
 
   const tie = selectReplay([
     { order: 1, dir: '/b', entry: entry({ file: 'second.json', time: 3 }), fileExists: true },

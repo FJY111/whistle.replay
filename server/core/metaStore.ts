@@ -35,15 +35,27 @@ export function readMeta(dir: string): MetaMap {
   }
 }
 
-export function recordMeta(dir: string, file: string, meta: FileMeta): void {
+export function recordMeta(
+  dir: string,
+  file: string,
+  meta: FileMeta,
+  removeFiles: readonly string[] = [],
+): void {
   try {
     const data = readMeta(dir);
-    data[file] = meta;
-    const keys = Object.keys(data);
-    keys.sort((a, b) => (data[b]?.time ?? 0) - (data[a]?.time ?? 0));
+    const removed = new Set(removeFiles.filter((name) => name !== file));
+    const kept: MetaMap = {};
+    for (const [name, item] of Object.entries(data)) {
+      if (!removed.has(name)) {
+        kept[name] = item;
+      }
+    }
+    kept[file] = meta;
+    const keys = Object.keys(kept);
+    keys.sort((a, b) => (kept[b]?.time ?? 0) - (kept[a]?.time ?? 0));
     const next: MetaMap = {};
     for (const key of keys.slice(0, MAX_META)) {
-      const item = data[key];
+      const item = kept[key];
       if (item) {
         next[key] = item;
       }

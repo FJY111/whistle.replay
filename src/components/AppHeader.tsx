@@ -18,7 +18,7 @@ export default function AppHeader({ saveActive, replayActive, dark, onToggleDark
       <div className="app-header-brand">
         <img alt="" className="app-header-logo" height={28} src={logo} width={28} />
         <div>
-          <strong className="app-header-title">Sake</strong>
+          <strong className="app-header-title">Replay</strong>
           <span className="app-header-sub">保存并回放</span>
         </div>
       </div>

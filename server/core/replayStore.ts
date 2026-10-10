@@ -10,7 +10,8 @@ import { replayKey } from './pathname';
 import { mergeReplayEntry, type ReplayMap, selectReplay } from './replayCatalog';
 import { isSafeFileName } from './sanitize';
 
-export const REPLAY_FILE = '.sake-replay.json';
+/** 写在用户指定的保存目录里，不能和现网 whistle.sake 的 .sake-replay.json 混用 */
+export const REPLAY_FILE = '.replay-replay.json';
 
 interface CacheEntry {
   mtimeMs: number;

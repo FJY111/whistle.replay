@@ -3,7 +3,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const INDEX_FILE = '.sake-index.json';
+/** 写在用户指定的保存目录里，不能和现网 whistle.sake 的 .sake-index.json 混用 */
+export const INDEX_FILE = '.replay-index.json';
 export const MAX_META = 500;
 
 export interface FileMeta {

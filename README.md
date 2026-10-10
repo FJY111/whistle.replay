@@ -1,6 +1,6 @@
-# whistle.sake
+# whistle.replay
 
-whistle 插件：按规则保存抓包响应为本地文件，并按路径和 HTTP 方法自动回放最早的一份（取 save + mock 之意）。
+whistle 插件：按规则保存抓包响应为本地文件，并按路径和 HTTP 方法自动回放最早的一份。
 
 ## 功能
 
@@ -14,9 +14,9 @@ whistle 插件：按规则保存抓包响应为本地文件，并按路径和 HT
 1. 先安装 whistle：[https://github.com/avwo/whistle](https://github.com/avwo/whistle)
 2. 安装插件：
    ```
-   bun i -g whistle.sake
+   bun i -g whistle.replay
    ```
-3. 在 whistle 管理界面的 Plugins 中打开 Sake 的配置界面。
+3. 在 whistle 管理界面的 Plugins 中打开 Replay 的配置界面。
 
 ## 使用
 
@@ -24,7 +24,7 @@ whistle 插件：按规则保存抓包响应为本地文件，并按路径和 HT
 
 1. 打开「保存规则」总开关。
 2. 添加规则：填写 URL 匹配（子串或 `/正则/i`）、可选 HTTP 方法、保存目录（本地绝对路径）、保存类型与大小上限。高级选项可按状态码过滤，并将 JSON 格式化后保存。
-3. 点击「更新配置」或 ⌘/Ctrl + S 生效。命中的请求响应体会保存为 `{路径末段}_{时间戳}_{随机}.json|txt`。`.sake-index.json` 最多展示较新的 500 条；`.sake-replay.json` 按路径和方法保留最早一份，供自动回放。
+3. 点击「更新配置」或 ⌘/Ctrl + S 生效。命中的请求响应体会保存为 `{路径末段}_{时间戳}_{随机}.json|txt`。`.replay-index.json` 最多展示较新的 500 条；`.replay-replay.json` 按路径和方法保留最早一份，供自动回放。这两个文件写在保存目录里，和 `whistle.sake` 的 `.sake-*` 分开。
 
 保存成功后不会自动对所有请求回放。回放还要打开「需要回放」开关，并且请求命中白名单。被回放的响应不会再次写入。
 

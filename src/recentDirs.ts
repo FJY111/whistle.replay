@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'sake-recent-dirs';
+const STORAGE_KEY = 'replay-recent-dirs';
 const MAX_DIRS = 8;
 
 export function getRecentDirs(): string[] {

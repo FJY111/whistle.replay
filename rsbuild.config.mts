@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [pluginReact()],
   html: {
     favicon: './src/assets/logo.svg',
-    title: 'Sake',
+    title: 'Replay',
   },
   output: {
     assetPrefix: './',
@@ -20,7 +20,7 @@ export default defineConfig({
     proxy: {
       '/cgi-bin': {
         changeOrigin: true,
-        pathRewrite: { '^/cgi-bin': '/whistle.sake/cgi-bin' },
+        pathRewrite: { '^/cgi-bin': '/whistle.replay/cgi-bin' },
         target: whistleTarget,
       },
     },

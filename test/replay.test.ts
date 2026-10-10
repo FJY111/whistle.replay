@@ -4,7 +4,7 @@ import type { ReplayEntry, ReplayRule } from '../server/core/model';
 
 import { fitRequestBody, normalizeStatusCode, readBody } from '../server/core/capture';
 import { captureHeaders, replayResponseHeaders } from '../server/core/headers';
-import { normalizeMethod, pathnameOf, replayKey } from '../server/core/pathname';
+import { hostnameOf, normalizeMethod, pathnameOf, replayKey } from '../server/core/pathname';
 import { isReplayActive, shouldReplay } from '../server/core/replayAllow';
 import { mergeReplayEntry, selectReplay } from '../server/core/replayCatalog';
 import { buildFileReplay, buildSseReplay } from '../server/core/replayRule';
@@ -30,6 +30,15 @@ test('pathnameOf: 只留路径，忽略协议、主机、端口、query 和 hash
   expect(pathnameOf('https://a.example')).toBe('/');
   expect(pathnameOf('')).toBeNull();
   expect(pathnameOf('not a url')).toBeNull();
+});
+
+test('hostnameOf: 只留主机名，忽略协议、端口、路径和用户信息', () => {
+  expect(hostnameOf('https://a.example:8443/api/items?x=1#top')).toBe('a.example');
+  expect(hostnameOf('http://user:pass@Shop.Example/api')).toBe('shop.example');
+  expect(hostnameOf('https://[2001:db8::1]:443/api')).toBe('2001:db8::1');
+  expect(hostnameOf('/api/items')).toBeNull();
+  expect(hostnameOf('')).toBeNull();
+  expect(hostnameOf('not a url')).toBeNull();
 });
 
 test('replayKey: 方法忽略大小写，键是方法加路径', () => {
@@ -90,22 +99,70 @@ test('selectReplay: 全局最早且文件仍在；最早的文件缺失则不改
 
 test('shouldReplay: 开关关闭一律不回放；开启时只有命中白名单才回放', () => {
   const rules: ReplayRule[] = [
-    { id: '1', name: '商品', enabled: true, pattern: '/api/items', methods: ['GET'] },
-    { id: '2', name: '停用', enabled: false, pattern: '/health', methods: [] },
+    { id: '1', name: '商品', enabled: true, host: '', pattern: '/api/items', methods: ['GET'] },
+    { id: '2', name: '停用', enabled: false, host: '', pattern: '/health', methods: [] },
   ];
   expect(isReplayActive(undefined)).toBe(true);
   expect(isReplayActive(false)).toBe(false);
-  expect(shouldReplay(false, '/api/items', 'GET', rules)).toBe(false);
-  expect(shouldReplay(true, '/status', 'GET', rules)).toBe(false);
-  expect(shouldReplay(true, '/api/items', 'POST', rules)).toBe(false);
-  expect(shouldReplay(true, '/api/items', 'GET', rules)).toBe(true);
-  expect(shouldReplay(true, '/health', 'GET', rules)).toBe(false);
-  const pathname = pathnameOf('https://example.com/api/items?page=1');
+  expect(shouldReplay(false, 'shop.example', '/api/items', 'GET', rules)).toBe(false);
+  expect(shouldReplay(true, 'shop.example', '/status', 'GET', rules)).toBe(false);
+  expect(shouldReplay(true, 'shop.example', '/api/items', 'POST', rules)).toBe(false);
+  expect(shouldReplay(true, 'shop.example', '/api/items', 'GET', rules)).toBe(true);
+  expect(shouldReplay(true, 'other.example', '/api/items', 'GET', rules)).toBe(true);
+  expect(shouldReplay(true, 'shop.example', '/health', 'GET', rules)).toBe(false);
+  const url = 'https://example.com:8443/api/items?page=1';
+  const hostname = hostnameOf(url);
+  const pathname = pathnameOf(url);
+  expect(hostname).toBe('example.com');
   expect(pathname).toBe('/api/items');
-  expect(shouldReplay(true, pathname ?? '', 'GET', rules)).toBe(true);
+  expect(shouldReplay(true, hostname ?? '', pathname ?? '', 'GET', rules)).toBe(true);
   expect(
-    shouldReplay(true, pathname ?? '', 'GET', [
-      { id: '3', name: '主机', enabled: true, pattern: 'example.com', methods: [] },
+    shouldReplay(true, hostname ?? '', pathname ?? '', 'GET', [
+      { id: '3', name: '主机当路径', enabled: true, host: '', pattern: 'example.com', methods: [] },
+    ]),
+  ).toBe(false);
+});
+
+test('shouldReplay: 域名和路径可单独或同时作为白名单', () => {
+  const hostOnly: ReplayRule = {
+    id: 'h',
+    name: '域名',
+    enabled: true,
+    host: 'shop.example',
+    pattern: '',
+    methods: ['GET'],
+  };
+  const pathOnly: ReplayRule = {
+    id: 'p',
+    name: '路径',
+    enabled: true,
+    host: '',
+    pattern: '/api/items',
+    methods: [],
+  };
+  const both: ReplayRule = {
+    id: 'b',
+    name: '同时',
+    enabled: true,
+    host: '/^shop\\./',
+    pattern: '/api/items',
+    methods: [],
+  };
+  expect(shouldReplay(true, 'shop.example', '/other', 'GET', [hostOnly])).toBe(true);
+  expect(shouldReplay(true, 'shop.example', '/other', 'POST', [hostOnly])).toBe(false);
+  expect(shouldReplay(true, 'api.shop.example', '/other', 'GET', [hostOnly])).toBe(true);
+  expect(shouldReplay(true, 'other.example', '/api/items', 'GET', [hostOnly])).toBe(false);
+  expect(shouldReplay(true, 'other.example', '/api/items', 'POST', [pathOnly])).toBe(true);
+  expect(shouldReplay(true, 'other.example', '/status', 'GET', [pathOnly])).toBe(false);
+  expect(shouldReplay(true, 'shop.example', '/api/items', 'GET', [both])).toBe(true);
+  expect(shouldReplay(true, 'shop.example', '/status', 'GET', [both])).toBe(false);
+  expect(shouldReplay(true, 'other.example', '/api/items', 'GET', [both])).toBe(false);
+  const withPort = hostnameOf('https://shop.example:8443/api/items');
+  expect(withPort).toBe('shop.example');
+  expect(shouldReplay(true, withPort ?? '', '/api/items', 'GET', [hostOnly])).toBe(true);
+  expect(
+    shouldReplay(true, withPort ?? '', '/api/items', 'GET', [
+      { ...hostOnly, host: 'shop.example:8443' },
     ]),
   ).toBe(false);
 });

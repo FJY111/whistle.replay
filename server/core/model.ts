@@ -22,12 +22,14 @@ export interface SaveRule {
   prettyJson: boolean;
 }
 
-/** 需要回放的白名单。pattern 只和 pathname 比较，命中才回放 */
+/** 需要回放的白名单。域名和路径都可选，但至少填一项；命中才回放 */
 export interface ReplayRule {
   id: string;
   name: string;
   enabled: boolean;
-  /** pathname 匹配：子串 或 /正则/ 或 /正则/i */
+  /** 主机名匹配：子串 或 /正则/ 或 /正则/i。空字符串表示任意域名 */
+  host: string;
+  /** pathname 匹配：子串 或 /正则/ 或 /正则/i。空字符串表示任意路径 */
   pattern: string;
   /** HTTP 方法过滤（大写），空数组 = 全部方法 */
   methods: string[];

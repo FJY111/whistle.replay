@@ -10,6 +10,20 @@ export function firstText(...values: (string | undefined)[]): string {
   return '';
 }
 
+/** 解析主机名：不含协议、端口、路径和用户信息。URL 解析结果为小写。无法解析时返回 null */
+export function hostnameOf(url: string): string | null {
+  const raw = typeof url === 'string' ? url.trim() : '';
+  if (!raw || raw.startsWith('/') || raw.startsWith('//')) {
+    return null;
+  }
+  try {
+    const hostname = new URL(raw).hostname.replace(/^\[|\]$/g, '');
+    return hostname || null;
+  } catch {
+    return null;
+  }
+}
+
 /** 解析 pathname；无法解析时返回 null。不合并末尾斜杠，不改大小写 */
 export function pathnameOf(url: string): string | null {
   const raw = typeof url === 'string' ? url.trim() : '';

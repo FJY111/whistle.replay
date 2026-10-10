@@ -80,15 +80,21 @@ test('sanitizeReplayRules: 只保留路径和方法，丢弃非法 pattern', () 
     { id: 'e1', enabled: true, pattern: '/health', methods: ['get'] },
     { pattern: '/[/' },
     { pattern: '' },
+    { host: '/[/', pattern: '/ok' },
+    { host: 'shop.example' },
+    { host: '/^api\\./i', pattern: '/v1' },
   ]);
-  expect(rules).toHaveLength(1);
+  expect(rules).toHaveLength(3);
   expect(rules[0]).toEqual({
     id: 'e1',
     name: '回放 1',
     enabled: true,
+    host: '',
     pattern: '/health',
     methods: ['GET'],
   });
+  expect(rules[1]).toMatchObject({ host: 'shop.example', pattern: '', methods: [] });
+  expect(rules[2]).toMatchObject({ host: '/^api\\./i', pattern: '/v1' });
 });
 
 test('parse: 从 storage 字符串解析，坏数据返回空列表', () => {

@@ -26,9 +26,20 @@ const newRule = (): ReplayRule => ({
   id: genId(),
   name: '',
   enabled: true,
+  host: '',
   pattern: '',
   methods: [],
 });
+
+function matchLabel(rule: ReplayRule): string {
+  if (rule.host && rule.pattern) {
+    return `${rule.host} ${rule.pattern}`;
+  }
+  if (rule.host) {
+    return `${rule.host} · 任意路径`;
+  }
+  return `${rule.pattern} · 任意域名`;
+}
 
 export default function ReplayPanel({ initialActive, initialRules, onActiveChange }: Props) {
   const { message } = AntApp.useApp();
@@ -72,7 +83,7 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
     const copy = {
       ...rule,
       id: genId(),
-      name: `${rule.name || rule.pattern} 副本`,
+      name: `${rule.name || rule.host || rule.pattern} 副本`,
       methods: [...rule.methods],
     };
     const next = [...rules];
@@ -145,7 +156,9 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
     };
   });
 
-  const visibleRules = rules.filter((rule) => matchesQuery(query, rule.name, rule.pattern));
+  const visibleRules = rules.filter((rule) =>
+    matchesQuery(query, rule.name, rule.host, rule.pattern),
+  );
   const hasEnabled = rules.some((rule) => rule.enabled);
   const statusText = !active
     ? '回放已关闭，请求继续访问真实服务器。'
@@ -167,8 +180,8 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
       </div>
       <span className="panel-desc">
         {statusText}
-        白名单只和路径（pathname）比较，支持子串或 /正则/i，并可限制 HTTP
-        方法。未命中则访问真实服务器。
+        白名单可按域名、路径或两者一起匹配。域名只比较主机名，路径只比较 pathname，都支持子串或
+        /正则/i。两者都填时必须同时命中，还可限制 HTTP 方法。未命中则访问真实服务器。
       </span>
 
       {rules.length > 0 ? (
@@ -208,7 +221,7 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
         <EmptyState
           steps={[
             '打开上方回放开关',
-            '添加一条白名单，只填写路径',
+            '添加一条白名单，填写域名、路径，或两者都填',
             '点击更新配置后，命中的请求才会回放',
           ]}
           title="暂无回放规则"
@@ -227,8 +240,14 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
                 key={rule.id}
                 moveDownDisabled={index === rules.length - 1}
                 moveUpDisabled={index === 0}
-                pattern={rule.pattern}
-                summary={<span>命中后才回放最早的一份</span>}
+                pattern={matchLabel(rule)}
+                summary={
+                  <span>
+                    {rule.host && rule.pattern
+                      ? '域名和路径都命中后才回放最早的一份'
+                      : '命中后才回放最早的一份'}
+                  </span>
+                }
                 tags={
                   <>
                     {rule.methods.length ? (
@@ -238,7 +257,7 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
                     )}
                   </>
                 }
-                title={rule.name || rule.pattern}
+                title={rule.name || rule.host || rule.pattern}
                 onDelete={() => {
                   mutate(rules.filter((item) => item.id !== rule.id));
                 }}
@@ -267,8 +286,12 @@ export default function ReplayPanel({ initialActive, initialRules, onActiveChang
               >
                 <div className="rule-detail-grid">
                   <div>
+                    <span className="detail-label">域名</span>
+                    <span className="detail-value mono">{rule.host || '任意域名'}</span>
+                  </div>
+                  <div>
                     <span className="detail-label">路径匹配</span>
-                    <span className="detail-value mono">{rule.pattern}</span>
+                    <span className="detail-value mono">{rule.pattern || '任意路径'}</span>
                   </div>
                   <div>
                     <span className="detail-label">方法</span>

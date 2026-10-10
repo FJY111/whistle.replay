@@ -16,11 +16,16 @@ interface Props {
 }
 
 interface Errors {
+  host?: string;
   pattern?: string;
 }
 
 export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
-  const [draft, setDraft] = useState<ReplayRule>(() => ({ ...rule, methods: [...rule.methods] }));
+  const [draft, setDraft] = useState<ReplayRule>(() => ({
+    ...rule,
+    host: rule.host,
+    methods: [...rule.methods],
+  }));
   const [errors, setErrors] = useState<Errors>({});
 
   const patch = (part: Partial<ReplayRule>) => {
@@ -28,9 +33,18 @@ export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
   };
 
   function handleSubmit() {
+    const host = draft.host.trim();
+    const pattern = draft.pattern.trim();
     const next: Errors = {};
-    if (!isValidPattern(draft.pattern)) {
-      next.pattern = draft.pattern.trim() ? '正则表达式无法编译' : '请输入匹配规则';
+    if (host && !isValidPattern(host)) {
+      next.host = '正则表达式无法编译';
+    } else if (!host && !pattern) {
+      next.host = '请填写域名或路径';
+    }
+    if (pattern && !isValidPattern(pattern)) {
+      next.pattern = '正则表达式无法编译';
+    } else if (!host && !pattern) {
+      next.pattern = '请填写域名或路径';
     }
     setErrors(next);
     if (Object.keys(next).length) {
@@ -38,8 +52,9 @@ export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
     }
     onOk({
       ...draft,
-      pattern: draft.pattern.trim(),
-      name: draft.name.trim() || draft.pattern.trim(),
+      host,
+      pattern,
+      name: draft.name.trim() || host || pattern,
     });
   }
 
@@ -58,7 +73,7 @@ export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
       title="编辑回放规则"
       onClose={onCancel}
     >
-      <Field extra="留空时以匹配规则作为名称" label="名称">
+      <Field extra="留空时以域名或路径作为名称" label="名称">
         <Input
           maxLength={64}
           placeholder="例如：商品接口"
@@ -70,10 +85,25 @@ export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
       </Field>
 
       <Field
+        error={errors.host}
+        extra="可选。只比较主机名，不含协议和端口。子串如 shop.example，或正则如 /^api\\./。留空表示任意域名。"
+        label="域名"
+      >
+        <Input
+          className="mono"
+          maxLength={512}
+          placeholder="shop.example 或 /正则/i"
+          value={draft.host}
+          onChange={(event) => {
+            patch({ host: event.target.value });
+          }}
+        />
+      </Field>
+
+      <Field
         error={errors.pattern}
-        extra="只和路径（pathname）比较。子串如 /api/items，或正则如 /^\\/api\\/items$/。不比较协议、主机和 query。命中才回放。"
+        extra="可选。只和路径（pathname）比较。子串如 /api/items，或正则如 /^\\/api\\/items$/。留空表示任意路径。域名和路径都填时必须同时命中。"
         label="路径匹配"
-        required
       >
         <Input
           className="mono"
@@ -86,7 +116,7 @@ export default function ReplayRuleEditor({ rule, onCancel, onOk }: Props) {
         />
       </Field>
 
-      <Field extra="不选表示命中该路径的全部方法都回放" label="HTTP 方法">
+      <Field extra="不选表示命中该规则的全部方法都回放" label="HTTP 方法">
         <Select
           allowClear
           mode="multiple"

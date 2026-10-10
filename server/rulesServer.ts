@@ -7,7 +7,7 @@ import type { WhistlePluginContext, WhistleRequest, WhistleServer } from './type
 import { normalizeStatusCode } from './core/capture';
 import { captureHeaders } from './core/headers';
 import { getStreamPort, isStreamReq, markReplayed, setStreamPort } from './core/mockMark';
-import { firstText, pathnameOf, replayKey } from './core/pathname';
+import { firstText, hostnameOf, pathnameOf, replayKey } from './core/pathname';
 import { isReplayActive, shouldReplay } from './core/replayAllow';
 import { buildFileReplay, buildSseReplay } from './core/replayRule';
 import { findEarliestReplay } from './core/replayStore';
@@ -104,8 +104,8 @@ function startStreamServer(storage: WhistlePluginContext['storage']): void {
 }
 
 /**
- * 动态规则：回放开关打开且 pathname 命中白名单时，按 pathname + 方法回放最早的保存结果。
- * 开关关闭、未命中白名单或没有可回放文件时不注入规则，请求继续走真实服务器。
+ * 动态规则：回放开关打开且请求命中白名单时，按 pathname + 方法回放最早的保存结果。
+ * 白名单可按主机名、pathname 或两者同时匹配。开关关闭、未命中或没有可回放文件时不注入规则。
  */
 function rulesServer(server: WhistleServer, { storage }: WhistlePluginContext): void {
   startStreamServer(storage);
@@ -137,6 +137,7 @@ function rulesServer(server: WhistleServer, { storage }: WhistlePluginContext): 
       if (
         !shouldReplay(
           true,
+          hostnameOf(url) ?? '',
           pathname,
           method ?? '',
           parseReplayRules(storage.getProperty('replayRules')),

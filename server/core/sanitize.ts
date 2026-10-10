@@ -52,6 +52,24 @@ const toPattern = (val: unknown): string | null => {
   return pattern;
 };
 
+/** 可空的匹配规则。缺省或空白为任意；写了但非法则整条规则丢弃 */
+const toOptionalPattern = (val: unknown): string | null => {
+  if (val == null) {
+    return '';
+  }
+  if (typeof val !== 'string') {
+    return null;
+  }
+  const pattern = val.trim();
+  if (!pattern) {
+    return '';
+  }
+  if (pattern.length > MAX_PATTERN_LEN || !isValidPattern(pattern)) {
+    return null;
+  }
+  return pattern;
+};
+
 const toMethods = (val: unknown): string[] => {
   if (!Array.isArray(val)) {
     return [];
@@ -141,8 +159,9 @@ export function sanitizeReplayRules(input: unknown): ReplayRule[] {
       continue;
     }
     const raw = item as Record<string, unknown>;
-    const pattern = toPattern(raw.pattern);
-    if (pattern === null) {
+    const host = toOptionalPattern(raw.host);
+    const pattern = toOptionalPattern(raw.pattern);
+    if (host === null || pattern === null || (!host && !pattern)) {
       continue;
     }
     const id = toId(raw.id);
@@ -154,6 +173,7 @@ export function sanitizeReplayRules(input: unknown): ReplayRule[] {
       id,
       name: toName(raw.name, `回放 ${String(result.length + 1)}`),
       enabled: raw.enabled === true,
+      host,
       pattern,
       methods: toMethods(raw.methods),
     });
